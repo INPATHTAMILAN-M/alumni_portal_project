@@ -46,6 +46,7 @@ class PostViewSet(viewsets.ModelViewSet):
         return Post.objects.filter(posted_by=self.request.user)
 
     def perform_create(self, serializer):
+        serializer.save(posted_by=self.request.user)
 
         if self.request.user.groups.filter(name='Administrator').exists() or self.request.user.groups.filter(name='Alumni_Manager').exists():
             serializer.save(posted_by=self.request.user, published=True)

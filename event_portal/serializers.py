@@ -6,8 +6,6 @@ class EventSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.title', read_only=True)
     posted_by_full_name = serializers.CharField(source='posted_by.get_full_name', read_only=True)
     event_wallpaper = serializers.SerializerMethodField()
-    likes_count = serializers.IntegerField(source='likes.count', read_only=True)
-    comments_count = serializers.IntegerField(source='comments.count', read_only=True)
 
     class Meta:
         model = Event

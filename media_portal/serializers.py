@@ -59,7 +59,7 @@ class PostSerializer(serializers.ModelSerializer):
     post_comments_count = serializers.SerializerMethodField()
     post_comments = PostCommentSerializer(many=True, read_only=True)
     post_likes = PostLikeSerializer(many=True, read_only=True)
-    posted_by = serializers.CharField(source='posted_by.username')
+    posted_by = serializers.SerializerMethodField()
     post_liked = serializers.SerializerMethodField()
     post_category = serializers.CharField(source='post_category.name', read_only=True) 
      
@@ -77,4 +77,7 @@ class PostSerializer(serializers.ModelSerializer):
     def get_post_liked(self, obj):
         user = self.context['request'].user  # Access the request from the serializer context
         return obj.post_likes.filter(liked_by=user).exists()
+    
+    def get_posted_by(self, obj):
+        return obj.posted_by.username
     

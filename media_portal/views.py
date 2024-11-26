@@ -49,25 +49,25 @@ class PostViewSet(viewsets.ModelViewSet):
         serializer.save(posted_by=self.request.user)
 
         if self.request.user.groups.filter(name='Administrator').exists() or self.request.user.groups.filter(name='Alumni_Manager').exists():
+
             serializer.save(posted_by=self.request.user, published=True)
         else:
-            serializer.save(posted_by=self.request.user)
+            serializer.save(posted_by=self.request.user, published=False)
 
-    def create_post(self, request, *args, **kwargs):
+    def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
         response.data = {
             "message": "Post created successfully.",
         }
         return response
 
-    def update_post(self, request, *args, **kwargs):
+    def update(self, request, *args, **kwargs):
         response = super().update(request, *args, **kwargs)
         response.data = {
             "message": "Post updated successfully.",
         }
         return response
-
-
+    
 #admin can able to see the false post
 class PostPendingViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()

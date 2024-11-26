@@ -165,10 +165,13 @@ class PostLikeViewSet(viewsets.ModelViewSet):
             return Response({"message": "Post not found."}, status=status.HTTP_404_NOT_FOUND)
         
         # Check if the user has already liked the post
-        if PostLike.objects.filter(post=post, liked_by=user).exists():
-            return Response({"message": "You already liked this post."}, status=status.HTTP_400_BAD_REQUEST)
+        existing_like = PostLike.objects.filter(post=post, liked_by=user).first()
         
-        # Create the like
-        post_like = PostLike.objects.create(post=post, liked_by=user)
-        
-        return Response({"message": "Post liked"}, status=status.HTTP_201_CREATED)
+        if existing_like:
+            # If a like exists, remove it (dislike)
+            existing_like.delete()
+            return Response({"message": "Post disliked"}, status=status.HTTP_200_OK)
+        else:
+            # If no like exists, create a new like
+            PostLike.objects.create(post=post, liked_by=user)
+            return Response({"message": "Post liked"}, status=status.HTTP_201_CREATED)

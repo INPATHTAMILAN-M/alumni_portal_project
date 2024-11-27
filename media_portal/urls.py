@@ -31,4 +31,11 @@ path('send_birthday_wishes/<int:member_id>/', SendBirthdayWishes.as_view(), name
 
 # filter post
 path('filter_posts/', PostFilterView.as_view(), name='filter_posts'),
+
+# manage albums
+path("createalbum/", AlbumView.as_view(), name="createalbum"),
+path("uploadalbum/<int:album_id>/", AlbumView.as_view(), name="uploadalbum"),
+path('albums/', AlbumView.as_view(), name='album_list'),  
+path('albums/<int:album_id>/', AlbumView.as_view(), name='album_detail'),
+path('updatealbum/<int:album_id>/', AlbumView.as_view(), name='update_album'),
 ]

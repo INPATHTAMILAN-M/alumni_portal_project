@@ -355,3 +355,123 @@ class PostFilterView(APIView):
         serializer = PostSerializer(queryset, many=True, context={'request': request})
 
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    
+# manage albums
+class AlbumView(APIView):
+
+    permission_classes = [IsAuthenticated]
+    parser_classes = (MultiPartParser, FormParser)
+    
+
+    def post(self, request):
+        # Extract data from the request
+        data = request.data
+        album_name = data.get('album_name')
+        description = data.get('description')
+        album_location = data.get('album_location')
+        album_date = data.get('album_date')
+        public_view = data.get('public_view', True)
+
+        # Validate required fields
+        if not album_name or not album_date:
+            return Response(
+                {"detail": "album_name and album_date are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Create the album
+        album = Album.objects.create(
+            album_name=album_name,
+            description=description,
+            album_location=album_location,
+            album_date=album_date,
+            public_view=public_view,
+            created_by=request.user,
+        )
+
+        # Respond with the album ID and a success message
+        return Response(
+            {"id": album.id, "detail": "Album created successfully."},
+            status=status.HTTP_201_CREATED,
+        )
+
+    def put(self, request, album_id):
+        # Retrieve the album
+        try:
+            album = Album.objects.get(id=album_id, created_by=request.user)
+        except Album.DoesNotExist:
+            return Response(
+                {"message": "Album not found or you do not have permission to add photos."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Retrieve files from the request
+        files = request.FILES.getlist('photos')
+
+        if not files:
+            return Response(
+                {"message": "No files were provided."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Save each photo to the album
+        photo_objects = []
+        for file in files:
+            photo = AlbumPhotos(album=album, photo=file)
+            photo_objects.append(photo)
+        AlbumPhotos.objects.bulk_create(photo_objects)
+
+        return Response(
+            {"message": "Files uploaded successfully."},
+            status=status.HTTP_201_CREATED,
+        )
+    
+
+    def get(self, request, album_id=None):
+        if album_id:
+            # Retrieve a specific album by ID
+            try:
+                album = Album.objects.get(id=album_id)
+                serialized_album = AlbumSerializer(album, context={'request': request}).data
+                serialized_album['created_on'] = album.created_on
+                serialized_album['created_by'] = album.created_by.username  # Assuming `User` has a `username` field
+                return Response(serialized_album, status=status.HTTP_200_OK)
+            except Album.DoesNotExist:
+                return Response({"detail": "Album not found."}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            # Retrieve all albums
+            albums = Album.objects.all()
+            serialized_albums = AlbumSerializer(albums, many=True, context={'request': request}).data
+            for album in serialized_albums:
+                album_instance = Album.objects.get(id=album['id'])
+                album['created_on'] = album_instance.created_on
+                album['created_by'] = album_instance.created_by.username
+            return Response(serialized_albums, status=status.HTTP_200_OK)
+        
+
+    def patch(self, request, album_id):
+        try:
+            # Fetch the album instance
+            album = Album.objects.get(id=album_id)
+            
+            # Update album fields
+            serializer = AlbumSerializer(album, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+
+                # Check if photos are included in the request
+                if 'photos' in request.FILES:
+                    photos = request.FILES.getlist('photos')  # Allow multiple photos
+                    for photo in photos:
+                        AlbumPhotos.objects.create(album=album, photo=photo)
+
+                return Response(
+                    {
+                        "detail": "Album updated successfully."
+                    },
+                    status=status.HTTP_200_OK,
+                )
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Album.DoesNotExist:
+            return Response({"detail": "Album not found."}, status=status.HTTP_404_NOT_FOUND)

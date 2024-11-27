@@ -16,14 +16,6 @@ urlpatterns = [
     path('active_event/', ActiveEvent.as_view(), name='active_event'),
     path('event_by_category/<int:category_id>/', EventByCategory.as_view(), name='event_by_category'),
     
-    # Question
-    path('create_question/', CreateQuestion.as_view(), name='create_question'),
-    path('create_event_question/<int:event_id>/', CreateEventQuestion.as_view(), name='create_event_question'),
-    path('retrieve_question/<int:question_id>/', RetrieveQuestion.as_view(), name='retrieve_question'),
-    path('update_question/<int:question_id>/', UpdateQuestion.as_view(), name='update_question'),
-    path('delete_question/<int:question_id>/', DeleteQuestion.as_view(), name='delete_question'),
-    path('retrieve_question/', RetrieveQuestion.as_view(), name='retrieve_all_questions'),
-    path('event_question_create/<int:event_id>/', EventQuestionCreate.as_view(), name='event_question_create'),
     
 
 ]

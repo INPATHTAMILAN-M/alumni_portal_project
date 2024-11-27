@@ -45,21 +45,27 @@ class CreateEvent(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        # Create a copy of the request.data and add posted_by to it
         event_data = request.data.copy()
         event_data['posted_by'] = request.user.id  # Add the current user's ID
         
-        serializer = EventSerializer(data=event_data)
+        # Serialize the event data first
+        event_serializer = EventSerializer(data=event_data)
         
-        if serializer.is_valid():
-            event = serializer.save()  # Save the event and get the instance
+        if event_serializer.is_valid():
+            event = event_serializer.save()  # Save the event and get the instance
             
+            # Handle event_question data if provided
+            event_questions = request.data.get('event_question', [])
+            for question_data in event_questions:
+                question = Question.objects.get(id=question_data['question'])  # Assuming `question` is the ID
+                EventQuestion.objects.create(event=event, question=question)
+
             return Response({
                 "message": "Event created successfully",
                 "event_id": event.id  # Return the created event ID
             }, status=status.HTTP_201_CREATED)
         
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(event_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class RetrieveEvent(APIView):
     permission_classes = [IsAuthenticated]
@@ -70,27 +76,51 @@ class RetrieveEvent(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class UpdateEvent(APIView):
-    permission_classes = [IsAuthenticated]  # Add any specific permissions if needed
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, event_id):
         try:
+            # Retrieve the event by ID
             event = Event.objects.get(id=event_id)
-            serializer = EventSerializer(event, context={'request': request})  # Pass request context
+            # Serialize the event data and return it
+            serializer = EventSerializer(event, context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Event.DoesNotExist:
             return Response({"message": "Event not found"}, status=status.HTTP_404_NOT_FOUND)
 
-
     def post(self, request, event_id):
         try:
+            # Retrieve the event by ID
             event = Event.objects.get(id=event_id)
-            serializer = EventSerializer(event, data=request.data, partial=True)  # Allow partial updates
+            # Create the serializer instance with the partial data
+            serializer = EventSerializer(event, data=request.data, partial=True)
+            
+            # Handle the event questions if present
+            event_questions_data = request.data.get('event_question', [])
+            if event_questions_data:
+                # First, remove all existing event questions for this event
+                EventQuestion.objects.filter(event=event).delete()
+                
+                # Then, create new EventQuestion instances based on the incoming data
+                for question_data in event_questions_data:
+                    question = Question.objects.get(id=question_data['question'])
+                    EventQuestion.objects.create(event=event, question=question)
+
+            # Validate and save the event data
             if serializer.is_valid():
-                serializer.save()
+                serializer.save()  # Save the event model
+
+                # Return success message
                 return Response({"message": "Event updated successfully"}, status=status.HTTP_200_OK)
+
+            # Return validation errors if the serializer is not valid
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
         except Event.DoesNotExist:
             return Response({"message": "Event not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Question.DoesNotExist:
+            return Response({"message": "One or more questions not found"}, status=status.HTTP_400_BAD_REQUEST)
 
 class DeactivateEvent(APIView):
     permission_classes = [IsAuthenticated]
@@ -123,71 +153,7 @@ class EventByCategory(APIView):
         serializer = EventSerializer(events, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-#------------------------------------------------------- manage question
-
-class CreateQuestion(APIView):
-    def post(self, request):
-        serializer = QuestionSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"message": "Question Created successfully"}, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-# create custom question
-class CreateEventQuestion(APIView):
-    def post(self, request,event_id):
-        
-        # Validate if the event exists
-        try:
-            event = Event.objects.get(id=event_id)
-        except Event.DoesNotExist:
-            return Response({"error": "Event not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Create the question
-        serializer = QuestionSerializer(data=request.data)
-        if serializer.is_valid():
-            question = serializer.save()
-
-            # Create the EventQuestion entry
-            EventQuestion.objects.create(event=event, question=question)
-
-            return Response({"message": "Question created successfully"}, status=status.HTTP_201_CREATED)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class RetrieveQuestion(APIView):
-    def get(self, request, question_id=None):
-        if question_id:
-            try:
-                question = Question.objects.get(id=question_id)
-                serializer = QuestionSerializer(question)
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            except Question.DoesNotExist:
-                return Response({"error": "Question not found"}, status=status.HTTP_404_NOT_FOUND)
-        else:
-            questions = Question.objects.all()
-            serializer = QuestionSerializer(questions, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-class UpdateQuestion(APIView):
-    def get(self, request, question_id):
-        try:
-            question = Question.objects.get(id=question_id)
-            serializer = QuestionSerializer(question)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except Question.DoesNotExist:
-            return Response({"error": "Question not found"}, status=status.HTTP_404_NOT_FOUND)
-            
-    def post(self, request, question_id):
-        try:
-            question = Question.objects.get(id=question_id)
-            serializer = QuestionSerializer(question, data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response({"message": "Question updated successfully"}, status=status.HTTP_200_OK)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Question.DoesNotExist:
-            return Response({"error": "Question not found"}, status=status.HTTP_404_NOT_FOUND)
+# delete event question
 
 class DeleteQuestion(APIView):
     def delete(self, request, question_id):

@@ -101,7 +101,7 @@ class PostSerializer(serializers.ModelSerializer):
     post_likes = PostLikeSerializer(many=True, read_only=True)
     posted_by = serializers.SerializerMethodField()
     post_liked = serializers.SerializerMethodField()
-    post_category = serializers.CharField(source='post_category.name', read_only=True)
+    post_category = serializers.SerializerMethodField()
     member_id = serializers.IntegerField(source='posted_by.member.id', read_only=True)
     profile_photo = serializers.SerializerMethodField()
 
@@ -139,6 +139,12 @@ class PostSerializer(serializers.ModelSerializer):
         except Member.DoesNotExist:
             return None
 
+    def get_post_category(self, obj):
+        return {
+            "id": obj.post_category.id,  # Return the ID of the post category
+            "name": obj.post_category.name  # Return the name of the post category
+        }
+    
 class MemberBirthdaySerializer(serializers.ModelSerializer):
     # Using SerializerMethodField to get the absolute URL of the profile picture
     profile_picture = serializers.SerializerMethodField()
@@ -158,3 +164,16 @@ class MemberBirthdaySerializer(serializers.ModelSerializer):
             # Combine the request's host with the relative URL to form the absolute URL
             return self.context['request'].build_absolute_uri(obj.profile_picture.url)
         return None
+    
+class AlbumPhotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AlbumPhotos
+        fields = ['id', 'photo', 'uploaded_on', 'approved']
+
+class AlbumSerializer(serializers.ModelSerializer):
+    photos = AlbumPhotoSerializer(many=True, read_only=True, source='albumphotos_set')
+
+    class Meta:
+        model = Album
+        fields = ['id', 'album_name', 'description', 'album_location', 'album_date', 
+                  'public_view', 'created_on', 'created_by', 'photos']

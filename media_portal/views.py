@@ -7,6 +7,7 @@ from .models import PostCategory
 from .serializers import *
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.decorators import action
+from django.utils import timezone
 # Create your views here.
 
 
@@ -54,8 +55,68 @@ class PostViewSet(viewsets.ModelViewSet):
         else:
             serializer.save(posted_by=self.request.user, published=False)
 
-    
-#admin can able to see the false post
+# create post
+        
+class CreatePost(APIView):
+    permission_classes = [IsAuthenticated]  # Ensure the user is authenticated
+
+    def post(self, request):
+        # Extract data from request
+
+        post_category_id = request.data.get('post_category')
+        published = request.data.get('published', False)
+        
+        post_category = get_object_or_404(PostCategory, id=post_category_id)
+        
+        if request.user.groups.filter(name='Administrator').exists() or request.user.groups.filter(name='Alumni_Manager').exists():
+            published = True  
+
+        post = Post.objects.create(
+            title=request.data.get('title'),
+            blog=request.data.get('blog'),
+            post_category=post_category,
+            content=request.data.get('content'),
+            published=published,
+            visible_to_public=request.data.get('visible_to_public'),
+            posted_by=request.user,
+        )
+
+        return Response({
+            "message": "Post created successfully",
+        }, status=status.HTTP_201_CREATED)
+
+# update post
+        
+class UpdatePost(APIView):
+    permission_classes = [IsAuthenticated]  
+
+    def post(self, request,post_id):
+        
+        if not post_id:
+            return Response({"message": "Post ID is required to update."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        post = get_object_or_404(Post, id=post_id)
+        
+        if post.posted_by != request.user:
+            return Response({"message": "You are not authorized to update this post."}, status=status.HTTP_403_FORBIDDEN)
+        
+        post_category_id = request.data.get('post_category', post.post_category.id)
+        post_category = get_object_or_404(PostCategory, id=post_category_id)
+        
+        post.title = request.data.get('title', post.title)  
+        post.blog = request.data.get('blog', post.blog)
+        post.post_category_id = post_category
+        post.content = request.data.get('content', post.content)
+        post.published = request.data.get('published', post.published)  
+        post.visible_to_public = request.data.get('visible_to_public', post.visible_to_public)
+
+        post.save()
+
+        return Response({
+            "message": "Post updated successfully"
+        }, status=status.HTTP_200_OK)
+ 
+# manage pending posts
 class PostPendingViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
@@ -105,7 +166,7 @@ class PostPendingViewSet(viewsets.ModelViewSet):
             {"message": "published successfully"},
             status=status.HTTP_200_OK
         )
-
+# manage post Comments
 class PostCommentViewSet(viewsets.ModelViewSet):
     queryset = PostComment.objects.all()
     serializer_class = PostComment_Serializer
@@ -130,14 +191,28 @@ class PostCommentViewSet(viewsets.ModelViewSet):
         serializer.save(comment_by=request.user)
         return Response({"message": "Comments posted"}, status=status.HTTP_201_CREATED)
 
-    def delete(self, request, *args, **kwargs):
-        instance = self.get_object()
-        if request.user == instance.comment_by or self.request.user.groups.filter(name='Administrator').exists() or self.request.user.groups.filter(name='Alumni_Manager').exists():
-            self.perform_destroy(instance)
-            return Response({"message": "Comment deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
-        return Response({"message": "You do not have permission to delete this comment."}, status=status.HTTP_403_FORBIDDEN)
+class PostCommentDelete(APIView):
+    permission_classes = [IsAuthenticated]  # Ensure the user is authenticated
 
+    def delete(self, request, comment_id):
+        try:
+            # Get the comment by ID
+            comment = PostComment.objects.get(id=comment_id)
 
+            # Check if the logged-in user is the one who posted the comment
+            if comment.comment_by != request.user:
+                return Response({"detail": "You cannot delete someone else's comment."}, status=status.HTTP_403_FORBIDDEN)
+            
+            # Perform the deletion
+            comment.delete()
+
+            return Response({"detail": "Comment deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+
+        except PostComment.DoesNotExist:
+            # If the comment doesn't exist
+            return Response({"detail": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+# manage post likes
 class PostLikeViewSet(viewsets.ModelViewSet):
     queryset = PostLike.objects.all()
     serializer_class = PostLikeSerializer
@@ -164,60 +239,29 @@ class PostLikeViewSet(viewsets.ModelViewSet):
             # If no like exists, create a new like
             PostLike.objects.create(post=post, liked_by=user)
             return Response({"message": "Post liked"}, status=status.HTTP_201_CREATED)
-        
-class CreatePost(APIView):
-    permission_classes = [IsAuthenticated]  # Ensure the user is authenticated
 
-    def post(self, request):
-        # Extract data from request
 
-        post_category_id = request.data.get('post_category')
-        published = request.data.get('published', False)
-        
-        post_category = get_object_or_404(PostCategory, id=post_category_id)
-        
-        if request.user.groups.filter(name='Administrator').exists() or request.user.groups.filter(name='Alumni_Manager').exists():
-            published = True  
+class UpcomingBirthdayListAPIView(APIView):
+    def get(self, request):
+        # Get the current date
+        today = timezone.now().date()
 
-        post = Post.objects.create(
-            title=request.data.get('title'),
-            blog=request.data.get('blog'),
-            post_category=post_category,
-            content=request.data.get('content'),
-            published=published,
-            visible_to_public=request.data.get('visible_to_public', False),
-            posted_by=request.user,
-        )
+        # Get the current year to check for upcoming birthdays in the future
+        current_year = today.year
 
-        return Response({
-            "message": "Post created successfully",
-        }, status=status.HTTP_201_CREATED)
-        
-class UpdatePost(APIView):
-    permission_classes = [IsAuthenticated]  
+        # Query for members with birthdays in the upcoming weeks or months
+        members = Member.objects.filter(
+            dob__month__gte=today.month,
+            dob__year=current_year
+        ).order_by('dob')[:10]
 
-    def post(self, request,post_id):
-        
-        if not post_id:
-            return Response({"message": "Post ID is required to update."}, status=status.HTTP_400_BAD_REQUEST)
-        
-        post = get_object_or_404(Post, id=post_id)
-        
-        if post.posted_by != request.user:
-            return Response({"message": "You are not authorized to update this post."}, status=status.HTTP_403_FORBIDDEN)
-        
-        post_category_id = request.data.get('post_category', post.post_category.id)
-        post_category = get_object_or_404(PostCategory, id=post_category_id)
-        
-        post.title = request.data.get('title', post.title)  
-        post.blog = request.data.get('blog', post.blog)
-        post.post_category_id = post_category
-        post.content = request.data.get('content', post.content)
-        post.published = request.data.get('published', post.published)  
-        post.visible_to_public = request.data.get('visible_to_public', post.visible_to_public)
+        # Filter out members whose birthdays are before today in the current month
+        upcoming_birthdays = []
+        for member in members:
+            # Only include members whose birthday hasn't passed yet
+            if member.dob.day >= today.day or member.dob.month > today.month:
+                upcoming_birthdays.append(member)
 
-        post.save()
-
-        return Response({
-            "message": "Post updated successfully"
-        }, status=status.HTTP_200_OK)
+        # Serialize the members data
+        serializer = MemberBirthdaySerializer(upcoming_birthdays, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

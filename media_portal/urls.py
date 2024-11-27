@@ -4,16 +4,27 @@ from .views import *
 
 router = DefaultRouter()
 router.register(r'postcategory',PostCategoryViewSet)
+# manage post
 router.register(r'posts', PostViewSet,basename='post')
+# manage pending post
 router.register(r'postpending',PostPendingViewSet,basename='postpending')
+# manage post comments
 router.register(r'postcomments', PostCommentViewSet, basename='postcomment'),
+# manage post likes
 router.register(r'post-likes', PostLikeViewSet)
 
 
 urlpatterns = [
 
 path('',include(router.urls)),
+# manage post
 path('create_post/', CreatePost.as_view(), name='create_post'),  # For creating a new post
 path('update_post/<int:post_id>/', UpdatePost.as_view(), name='update_post'),
+
+# delete post comment
+path('delete_post_comment/<int:comment_id>/', PostCommentDelete.as_view(), name='delete_post_comment'),
+
+# upcoming birthdays
+path('upcoming_birthdays/', UpcomingBirthdayListAPIView.as_view(), name='upcoming_birthdays'),
 
 ]

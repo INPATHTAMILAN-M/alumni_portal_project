@@ -71,7 +71,7 @@ class PostCommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PostComment
-        fields = ['comment', 'comment_by', 'comment_on', 'is_comment', 'member_id', 'profile_photo']
+        fields = ['id','comment', 'comment_by', 'comment_on', 'is_comment', 'member_id', 'profile_photo']
 
     def get_is_comment(self, obj):
         user = self.context['request'].user
@@ -139,3 +139,13 @@ class PostSerializer(serializers.ModelSerializer):
         except Member.DoesNotExist:
             return None
 
+class MemberBirthdaySerializer(serializers.ModelSerializer):
+    profile_picture = serializers.ImageField()
+    fullname = serializers.CharField(source='user.get_full_name', read_only=True)
+    batch = serializers.CharField(source='batch.title', read_only=True)
+    course = serializers.CharField(source='course.title', read_only=True)
+    member_id = serializers.IntegerField(source='id', read_only=True)
+
+    class Meta:
+        model = Member
+        fields = ['profile_picture', 'fullname', 'batch', 'course', 'member_id','dob']

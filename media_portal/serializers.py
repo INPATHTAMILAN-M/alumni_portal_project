@@ -149,3 +149,4 @@ class MemberBirthdaySerializer(serializers.ModelSerializer):
     class Meta:
         model = Member
         fields = ['profile_picture', 'fullname', 'batch', 'course', 'member_id','dob']
+

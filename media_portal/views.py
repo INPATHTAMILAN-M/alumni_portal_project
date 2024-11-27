@@ -8,7 +8,10 @@ from .serializers import *
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.decorators import action
 from django.utils import timezone
-# Create your views here.
+from django.core.mail import send_mail
+from django.conf import settings
+from datetime import date
+
 
 
 class PostCategoryViewSet(viewsets.ModelViewSet):
@@ -78,6 +81,7 @@ class CreatePost(APIView):
             content=request.data.get('content'),
             published=published,
             visible_to_public=request.data.get('visible_to_public'),
+            featured_image = request.data.get('featured_image'), 
             posted_by=request.user,
         )
 
@@ -109,7 +113,7 @@ class UpdatePost(APIView):
         post.content = request.data.get('content', post.content)
         post.published = request.data.get('published', post.published)  
         post.visible_to_public = request.data.get('visible_to_public', post.visible_to_public)
-
+        post.featured_image = request.data.get('featured_image',post.featured_image),
         post.save()
 
         return Response({
@@ -240,7 +244,8 @@ class PostLikeViewSet(viewsets.ModelViewSet):
             PostLike.objects.create(post=post, liked_by=user)
             return Response({"message": "Post liked"}, status=status.HTTP_201_CREATED)
 
-
+# manage birthday wishes
+# list 10 members
 class UpcomingBirthdayListAPIView(APIView):
     def get(self, request):
         # Get the current date
@@ -265,3 +270,55 @@ class UpcomingBirthdayListAPIView(APIView):
         # Serialize the members data
         serializer = MemberBirthdaySerializer(upcoming_birthdays, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+# list all members
+class UpcomingBirthdayAll(APIView):
+    def get(self, request):
+        # Get the current date
+        today = timezone.now().date()
+
+        # Get the current year to check for upcoming birthdays in the future
+        current_year = today.year
+
+        # Query for members with birthdays in the upcoming weeks or months
+        members = Member.objects.filter(
+            dob__month__gte=today.month,
+            dob__year=current_year
+        ).order_by('dob')
+
+        # Filter out members whose birthdays are before today in the current month
+        upcoming_birthdays = []
+        for member in members:
+            # Only include members whose birthday hasn't passed yet
+            if member.dob.day >= today.day or member.dob.month > today.month:
+                upcoming_birthdays.append(member)
+
+        # Serialize the members data
+        serializer = MemberBirthdaySerializer(upcoming_birthdays, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+# send wishes via email
+class SendBirthdayWishes(APIView):
+    def post(self, request, member_id):
+        try:
+            # Fetch member by member_id
+            member = Member.objects.get(id=member_id)
+            
+            # Check if today is the member's birthday
+            if member.dob and member.dob.month == date.today().month and member.dob.day == date.today().day:
+                
+                # Send birthday email
+                subject = 'Happy Birthday!'
+                message = f"Dear {member.salutation} {member.user.first_name} {member.user.last_name},\n\nWe wish you a very Happy Birthday! 🎉\n\nBest regards,\n {request.user.email}"
+                from_email = settings.EMAIL_HOST_USER
+                to_email = [member.email]
+                
+                send_mail(subject, message, from_email, to_email)
+                
+                return Response({"message": "Birthday wishes sent successfully!"}, status=200)
+            else:
+                return Response({"message": "Today is not the member's birthday."}, status=200)
+        
+        except Member.DoesNotExist:
+            return Response({"error": "Member not found!"}, status=404)
+        

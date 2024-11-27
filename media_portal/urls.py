@@ -24,7 +24,9 @@ path('update_post/<int:post_id>/', UpdatePost.as_view(), name='update_post'),
 # delete post comment
 path('delete_post_comment/<int:comment_id>/', PostCommentDelete.as_view(), name='delete_post_comment'),
 
-# upcoming birthdays
+# # manage birthday wishes
 path('upcoming_birthdays/', UpcomingBirthdayListAPIView.as_view(), name='upcoming_birthdays'),
+path('all_upcoming_birthdays/', UpcomingBirthdayAll.as_view(), name='all_upcoming_birthdays'),
+path('send_birthday_wishes/<int:member_id>/', SendBirthdayWishes.as_view(), name='send_birthday_wishes')
 
 ]

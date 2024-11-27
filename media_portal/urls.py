@@ -13,5 +13,7 @@ router.register(r'post-likes', PostLikeViewSet)
 urlpatterns = [
 
 path('',include(router.urls)),
+path('create_post/', CreatePost.as_view(), name='create_post'),  # For creating a new post
+path('update_post/<int:post_id>/', UpdatePost.as_view(), name='update_post'),
 
 ]

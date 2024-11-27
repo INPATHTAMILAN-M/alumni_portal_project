@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -54,19 +54,6 @@ class PostViewSet(viewsets.ModelViewSet):
         else:
             serializer.save(posted_by=self.request.user, published=False)
 
-    def create(self, request, *args, **kwargs):
-        response = super().create(request, *args, **kwargs)
-        response.data = {
-            "message": "Post created successfully.",
-        }
-        return response
-
-    def update(self, request, *args, **kwargs):
-        response = super().update(request, *args, **kwargs)
-        response.data = {
-            "message": "Post updated successfully.",
-        }
-        return response
     
 #admin can able to see the false post
 class PostPendingViewSet(viewsets.ModelViewSet):
@@ -177,3 +164,60 @@ class PostLikeViewSet(viewsets.ModelViewSet):
             # If no like exists, create a new like
             PostLike.objects.create(post=post, liked_by=user)
             return Response({"message": "Post liked"}, status=status.HTTP_201_CREATED)
+        
+class CreatePost(APIView):
+    permission_classes = [IsAuthenticated]  # Ensure the user is authenticated
+
+    def post(self, request):
+        # Extract data from request
+
+        post_category_id = request.data.get('post_category')
+        published = request.data.get('published', False)
+        
+        post_category = get_object_or_404(PostCategory, id=post_category_id)
+        
+        if request.user.groups.filter(name='Administrator').exists() or request.user.groups.filter(name='Alumni_Manager').exists():
+            published = True  
+
+        post = Post.objects.create(
+            title=request.data.get('title'),
+            blog=request.data.get('blog'),
+            post_category=post_category,
+            content=request.data.get('content'),
+            published=published,
+            visible_to_public=request.data.get('visible_to_public', False),
+            posted_by=request.user,
+        )
+
+        return Response({
+            "message": "Post created successfully",
+        }, status=status.HTTP_201_CREATED)
+        
+class UpdatePost(APIView):
+    permission_classes = [IsAuthenticated]  
+
+    def post(self, request,post_id):
+        
+        if not post_id:
+            return Response({"message": "Post ID is required to update."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        post = get_object_or_404(Post, id=post_id)
+        
+        if post.posted_by != request.user:
+            return Response({"message": "You are not authorized to update this post."}, status=status.HTTP_403_FORBIDDEN)
+        
+        post_category_id = request.data.get('post_category', post.post_category.id)
+        post_category = get_object_or_404(PostCategory, id=post_category_id)
+        
+        post.title = request.data.get('title', post.title)  
+        post.blog = request.data.get('blog', post.blog)
+        post.post_category_id = post_category
+        post.content = request.data.get('content', post.content)
+        post.published = request.data.get('published', post.published)  
+        post.visible_to_public = request.data.get('visible_to_public', post.visible_to_public)
+
+        post.save()
+
+        return Response({
+            "message": "Post updated successfully"
+        }, status=status.HTTP_200_OK)

@@ -13,7 +13,6 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.utils.crypto import get_random_string
 from rest_framework import status
 from django.contrib.auth.models import User, Group
-
 from alumni_portal.settings import FRONTEND_URL
 from .serializers import *
 import pandas as pd

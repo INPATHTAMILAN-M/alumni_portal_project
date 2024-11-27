@@ -79,7 +79,7 @@ class PostPendingViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_staff:  
+        if self.request.user.groups.filter(name='Administrator').exists() or self.request.user.groups.filter(name='Alumni_Manager').exists():  
             return Post.objects.filter(published=False)
         return Post.objects.filter(published=False, posted_by=user)
 
@@ -94,20 +94,21 @@ class PostPendingViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(published_posts, many=True)
         return Response(serializer.data)
 
-    def publish_post(self, request, *args, **kwargs):
+    @action(detail = False, methods = ['put'],url_path = '(?P<post_id>\d+)')
+    def publish_post(self, request,post_id, *args, **kwargs):
         
         user = request.user
-        if not user.is_staff:
+        if not self.request.user.groups.filter(name='Administrator').exists() or not self.request.user.groups.filter(name='Alumni_Manager').exists():
             return Response(
                 {"message": "Only admins can update posts."}, 
                 status=status.HTTP_403_FORBIDDEN
             )
 
         try:
-            post = self.get_object()
+            post = Post.objects.get(id=post_id)
         except Post.DoesNotExist:
             return Response(
-                {"message": "Post not found or already published."}, 
+                {"message": "Post not found"}, 
                 status=status.HTTP_404_NOT_FOUND
             )
         

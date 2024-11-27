@@ -140,7 +140,8 @@ class PostSerializer(serializers.ModelSerializer):
             return None
 
 class MemberBirthdaySerializer(serializers.ModelSerializer):
-    profile_picture = serializers.ImageField()
+    # Using SerializerMethodField to get the absolute URL of the profile picture
+    profile_picture = serializers.SerializerMethodField()
     fullname = serializers.CharField(source='user.get_full_name', read_only=True)
     batch = serializers.CharField(source='batch.title', read_only=True)
     course = serializers.CharField(source='course.title', read_only=True)
@@ -148,5 +149,12 @@ class MemberBirthdaySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Member
-        fields = ['profile_picture', 'fullname', 'batch', 'course', 'member_id','dob']
-
+        fields = ['profile_picture', 'fullname', 'batch', 'course', 'member_id', 'dob']
+    def get_profile_picture(self, obj):
+        """
+        Method to get the absolute URL for the profile picture.
+        """
+        if obj.profile_picture:
+            # Combine the request's host with the relative URL to form the absolute URL
+            return self.context['request'].build_absolute_uri(obj.profile_picture.url)
+        return None

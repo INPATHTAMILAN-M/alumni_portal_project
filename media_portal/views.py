@@ -11,7 +11,7 @@ from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
 from datetime import date
-
+from django.db.models import Q
 
 
 class PostCategoryViewSet(viewsets.ModelViewSet):
@@ -203,18 +203,19 @@ class PostCommentDelete(APIView):
             # Get the comment by ID
             comment = PostComment.objects.get(id=comment_id)
 
-            # Check if the logged-in user is the one who posted the comment
-            if comment.comment_by != request.user:
-                return Response({"detail": "You cannot delete someone else's comment."}, status=status.HTTP_403_FORBIDDEN)
-            
+            if comment.comment_by != request.user and not (
+            request.user.groups.filter(name='Administrator').exists() or 
+            request.user.groups.filter(name='Alumni_Manager').exists() ):
+                return Response({"message": "You do not have permission to delete this comment."}, status=status.HTTP_403_FORBIDDEN)
+        
             # Perform the deletion
             comment.delete()
 
-            return Response({"detail": "Comment deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+            return Response({"message": "Comment deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
 
         except PostComment.DoesNotExist:
             # If the comment doesn't exist
-            return Response({"detail": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
         
 # manage post likes
 class PostLikeViewSet(viewsets.ModelViewSet):
@@ -268,7 +269,7 @@ class UpcomingBirthdayListAPIView(APIView):
                 upcoming_birthdays.append(member)
 
         # Serialize the members data
-        serializer = MemberBirthdaySerializer(upcoming_birthdays, many=True)
+        serializer = MemberBirthdaySerializer(upcoming_birthdays, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 # list all members
@@ -294,7 +295,7 @@ class UpcomingBirthdayAll(APIView):
                 upcoming_birthdays.append(member)
 
         # Serialize the members data
-        serializer = MemberBirthdaySerializer(upcoming_birthdays, many=True)
+        serializer = MemberBirthdaySerializer(upcoming_birthdays, many=True,  context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 # send wishes via email
@@ -322,3 +323,35 @@ class SendBirthdayWishes(APIView):
         except Member.DoesNotExist:
             return Response({"error": "Member not found!"}, status=404)
         
+# filter posts
+ 
+class PostFilterView(APIView):
+    def post(self, request, *args, **kwargs):
+        # Extract data from request
+        post_category = request.data.get('post_category', None)
+        title = request.data.get('title', None)
+        published = request.data.get('published', None)  # Optional filter for published status
+        
+        # Default filter for published posts
+        filters = Q(published=True)  # Default to published=True
+
+        # Additional filtering based on user-provided criteria
+        if post_category not in [None, ""]:
+            filters &= Q(post_category__id=post_category)
+
+        if title not in [None, ""]:
+            filters &= Q(title__icontains=title)
+
+        # If 'published' is specified, update the filter to include or exclude published posts
+        if published is not None:
+            filters &= Q(published=published)
+
+        # Apply the filters to the Post queryset with prefetch_related to optimize DB queries
+        queryset = Post.objects.prefetch_related(
+            'post_category'
+        ).filter(filters)
+
+        # Serialize the filtered data
+        serializer = PostSerializer(queryset, many=True, context={'request': request})
+
+        return Response(serializer.data, status=status.HTTP_200_OK)

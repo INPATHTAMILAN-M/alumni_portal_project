@@ -57,7 +57,7 @@ class PostLikeSerializer(serializers.ModelSerializer):
         try:
             member = obj.liked_by.member
             if member.profile_picture:
-                return member.profile_picture.url
+                return self.context['request'].build_absolute_uri(member.profile_picture.url)
             return None
         except Member.DoesNotExist:
             return None
@@ -134,7 +134,7 @@ class PostSerializer(serializers.ModelSerializer):
         try:
             member = obj.posted_by.member
             if member.profile_picture:
-                return member.profile_picture.url
+                return self.context['request'].build_absolute_uri(member.profile_picture.url)
             return None
         except Member.DoesNotExist:
             return None

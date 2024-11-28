@@ -113,7 +113,7 @@ class UpdatePost(APIView):
         post.content = request.data.get('content', post.content)
         post.published = request.data.get('published', post.published)  
         post.visible_to_public = request.data.get('visible_to_public', post.visible_to_public)
-        post.featured_image = request.data.get('featured_image',post.featured_image),
+        post.featured_image = request.data.get('featured_image',post.featured_image)
         post.save()
 
         return Response({

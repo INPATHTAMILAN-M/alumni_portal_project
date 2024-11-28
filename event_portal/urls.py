@@ -16,6 +16,5 @@ urlpatterns = [
     path('active_event/', ActiveEvent.as_view(), name='active_event'),
     path('event_by_category/<int:category_id>/', EventByCategory.as_view(), name='event_by_category'),
     
-    
 
 ]

@@ -4,7 +4,7 @@ from .models import *
 
 class QuestionSerializer(serializers.ModelSerializer):
     class Meta:
-        model = EventQuestion
+        model = Question
         fields = ['id', 'question', 'help_text', 'options', 'is_faq']
         
 class EventQuestionSerializer(serializers.ModelSerializer):
@@ -20,7 +20,7 @@ class EventSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Event
-        fields = ['title', 'category', 'start_date', 'start_time', 'venue', 'address', 'link', 'is_public',
+        fields = ['id','title', 'category', 'start_date', 'start_time', 'venue', 'address', 'link', 'is_public',
                   'need_registration', 'registration_close_date', 'description', 'event_wallpaper', 'instructions',
                   'posted_by', 'event_question']
         
@@ -39,7 +39,7 @@ class EventRetrieveSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = [
-            'title', 'category', 'start_date', 'start_time', 'venue', 'address', 'link', 'is_public',
+            'id','title', 'category', 'start_date', 'start_time', 'venue', 'address', 'link', 'is_public',
             'need_registration', 'registration_close_date', 'description', 'event_wallpaper', 'instructions',
             'posted_by', 'event_question'
         ]
@@ -58,8 +58,10 @@ class EventRetrieveSerializer(serializers.ModelSerializer):
         event_question_data = []
 
         for event_question in event_questions:
+            
             question = event_question.question  # Get the related Question
             question_data = {
+                'event_question_id':event_question.id,
                 'id': question.id,
                 'question': question.question,
                 'options': question.options,

@@ -14,6 +14,7 @@ urlpatterns = [
     path('update_event/<int:event_id>/', UpdateEvent.as_view(), name='update_event'),
     path('inactive_event/<int:event_id>/', DeactivateEvent.as_view(), name='inactive_event'),
     path('active_event/', ActiveEvent.as_view(), name='active_event'),
+    path('recommended_questions/', RecommendedQuestions.as_view(), name='recommended_questions'),
     path('event_by_category/<int:category_id>/', EventByCategory.as_view(), name='event_by_category'),
     
 

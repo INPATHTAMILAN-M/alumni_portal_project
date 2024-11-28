@@ -32,6 +32,7 @@ class Question(models.Model):
     options = models.CharField(max_length=225, blank=True, null=True)
     help_text = models.CharField(max_length=225, blank=True, null=True)
     is_faq = models.BooleanField(default=False)
+    is_recommended = models.BooleanField(default=False)
 
     def __str__(self):
         return self.question
@@ -39,6 +40,9 @@ class Question(models.Model):
 class EventQuestion(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    
+    def __str__(self):
+        return f"{self.question.question} for {self.event.title}"
 
 class EventRegistration(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)

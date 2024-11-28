@@ -150,7 +150,7 @@ class MemberBirthdaySerializer(serializers.ModelSerializer):
     profile_picture = serializers.SerializerMethodField()
     fullname = serializers.CharField(source='user.get_full_name', read_only=True)
     batch = serializers.CharField(source='batch.title', read_only=True)
-    course = serializers.CharField(source='course.title', read_only=True)
+    course = serializers.CharField(source='course.department.short_name', read_only=True)
     member_id = serializers.IntegerField(source='id', read_only=True)
 
     class Meta:

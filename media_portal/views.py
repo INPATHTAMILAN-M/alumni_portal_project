@@ -258,7 +258,8 @@ class UpcomingBirthdayListAPIView(APIView):
         # Query for members with birthdays in the upcoming weeks or months
         members = Member.objects.filter(
             dob__month__gte=today.month,
-            dob__year=current_year
+            dob__year=current_year,
+            user__isnull=False
         ).order_by('dob')[:10]
 
         # Filter out members whose birthdays are before today in the current month
@@ -284,7 +285,8 @@ class UpcomingBirthdayAll(APIView):
         # Query for members with birthdays in the upcoming weeks or months
         members = Member.objects.filter(
             dob__month__gte=today.month,
-            dob__year=current_year
+            dob__year=current_year,
+            user__isnull=False
         ).order_by('dob')
 
         # Filter out members whose birthdays are before today in the current month
@@ -376,7 +378,7 @@ class AlbumView(APIView):
         # Validate required fields
         if not album_name or not album_date:
             return Response(
-                {"detail": "album_name and album_date are required."},
+                {"message": "album_name and album_date are required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -392,9 +394,13 @@ class AlbumView(APIView):
 
         # Respond with the album ID and a success message
         return Response(
-            {"id": album.id, "detail": "Album created successfully."},
+            {"id": album.id, "message": "Album created successfully."},
             status=status.HTTP_201_CREATED,
         )
+
+
+    
+
 
     def put(self, request, album_id):
         # Retrieve the album
@@ -438,7 +444,7 @@ class AlbumView(APIView):
                 serialized_album['created_by'] = album.created_by.username  # Assuming `User` has a `username` field
                 return Response(serialized_album, status=status.HTTP_200_OK)
             except Album.DoesNotExist:
-                return Response({"detail": "Album not found."}, status=status.HTTP_404_NOT_FOUND)
+                return Response({"message": "Album not found."}, status=status.HTTP_404_NOT_FOUND)
         else:
             # Retrieve all albums
             albums = Album.objects.all()
@@ -468,10 +474,55 @@ class AlbumView(APIView):
 
                 return Response(
                     {
-                        "detail": "Album updated successfully."
+                        "message": "Album updated successfully."
                     },
                     status=status.HTTP_200_OK,
                 )
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Album.DoesNotExist:
+            return Response({"message": "Album not found."}, status=status.HTTP_404_NOT_FOUND)
+
+
+        
+    def delete(self, request, photo_id):
+        try:
+            # Fetch the photo
+            photo = AlbumPhotos.objects.get(id=photo_id)
+
+            # Check if the user is allowed to delete the photo
+            is_creator = photo.album.created_by == request.user
+            is_alumni_manager = request.user.groups.filter(name='Alumni_Manager').exists()
+            is_adminstrator = request.user.groups.filter(name='Administrator').exists()
+
+            if is_creator or is_alumni_manager or is_adminstrator:
+                photo.delete()
+                return Response({"message": "Photo deleted successfully."}, status=status.HTTP_200_OK)
+            else:
+                return Response(
+                    {"message": "You do not have permission to delete this photo."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except AlbumPhotos.DoesNotExist:
+            return Response({"message": "Photo not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+    
+    def delete(self, request, album_id):
+        try:
+            album = Album.objects.get(id=album_id)
+
+            # Check user permissions
+            is_creator = album.created_by == request.user
+            is_alumni_manager = request.user.groups.filter(name='Alumni_Manager').exists()
+            is_adminstrator = request.user.groups.filter(name='Administrator').exists()
+
+            if is_creator or is_alumni_manager or is_adminstrator:
+                album.delete()
+                return Response({"detail": "Album deleted successfully."}, status=status.HTTP_200_OK)
+            else:
+                return Response(
+                    {"detail": "You do not have permission to delete this album."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except Album.DoesNotExist:
             return Response({"detail": "Album not found."}, status=status.HTTP_404_NOT_FOUND)
+        

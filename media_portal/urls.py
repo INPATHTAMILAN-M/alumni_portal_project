@@ -38,4 +38,7 @@ path("uploadalbum/<int:album_id>/", AlbumView.as_view(), name="uploadalbum"),
 path('albums/', AlbumView.as_view(), name='album_list'),  
 path('albums/<int:album_id>/', AlbumView.as_view(), name='album_detail'),
 path('updatealbum/<int:album_id>/', AlbumView.as_view(), name='update_album'),
+path('delete/photos/<int:photo_id>/', AlbumView.as_view(), name='delete_photo'),
+path('delete/albums/<int:album_id>/', AlbumView.as_view(), name='delete_album'),
+
 ]

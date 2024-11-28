@@ -1,4 +1,5 @@
 import datetime
+from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -7,6 +8,8 @@ from .models import *
 from account.permissions import *
 from .serializers import *
 from django.core.exceptions import ObjectDoesNotExist
+import openpyxl
+from django.http import HttpResponse
 
 # manage category
 class CreateEventCategory(APIView):
@@ -205,3 +208,136 @@ class EventQuestionDelete(APIView):
             return Response({"message": "EventQuestion deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
         except EventQuestion.DoesNotExist:
             return Response({"error": "EventQuestion not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+# register event
+class RegisterEvent(APIView):
+    permission_classes = [IsAuthenticated]  # Ensure that the user is authenticated
+    
+    def post(self, request, event_id):
+        event = get_object_or_404(Event, id=event_id)
+        
+        if EventRegistration.objects.filter(event=event, user=request.user).exists():
+            return Response({"error": "You are already registered for this event."}, status=status.HTTP_400_BAD_REQUEST)
+
+        event_registration = EventRegistration.objects.create(
+            event=event,
+            user=request.user
+        )
+
+        responses_data = request.data.get('responses', [])
+        
+        if responses_data:
+            for response_data in responses_data:
+                question_id = response_data.get('question_id')
+                response = response_data.get('response')
+                
+                try:
+                    question = Question.objects.get(id=question_id)
+                except Question.DoesNotExist:
+                    return Response({"error": "Question not found."}, status=status.HTTP_404_NOT_FOUND)
+
+                RegistrationResponse.objects.create(
+                    registered_event=event_registration,
+                    question=question,
+                    response=response
+                )
+
+        return Response({
+            "message": "Successfully registered for the event."
+        }, status=status.HTTP_201_CREATED)
+
+# export event data
+class ExportEvent(APIView):
+    """
+    API view to export event data including event details, questions, registrations, and responses.
+    """
+    
+    def get(self, request, event_id):
+        # Fetch the event object, or return a 404 error if it doesn't exist
+        event = get_object_or_404(Event, id=event_id)
+
+        # Create a new workbook and set the sheet name
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+        sheet.title = f"Event {event.title}"
+
+        # Define headers for event details
+        headers = [
+            'Event Title', 'Category', 'Start Date', 'Start Time', 'Venue',
+            'Address', 'Link', 'Is Public', 'Need Registration', 'Registration Close Date',
+            'Description', 'Event Wallpaper', 'Instructions', 'Posted By'
+        ]
+        sheet.append(headers)
+
+        # Add event details to the sheet
+        row = [
+            event.title,
+            event.category.title,
+            event.start_date,
+            event.start_time,
+            event.venue,
+            event.address,
+            event.link,
+            event.is_public,
+            event.need_registration,
+            event.registration_close_date,
+            event.description,
+            event.event_wallpaper.url if event.event_wallpaper else 'No Wallpaper',
+            event.instructions,
+            event.posted_by.get_full_name()
+        ]
+        sheet.append(row)
+
+        # Add a section for event questions
+        sheet.append([''])  # Empty row
+        sheet.append(['Questions'])
+        question_headers = ['Question', 'Options', 'Help Text', 'Is FAQ']
+        sheet.append(question_headers)
+
+        # Add event questions and their details
+        event_questions = EventQuestion.objects.filter(event=event)
+        for event_question in event_questions:
+            question = event_question.question
+            question_row = [
+                question.question,
+                question.options,
+                question.help_text,
+                question.is_faq
+            ]
+            sheet.append(question_row)
+
+        # Add a section for registrations
+        sheet.append([''])  # Empty row
+        sheet.append(['Registrations'])
+        registration_headers = ['Username', 'Applied On', 'Responses']
+        sheet.append(registration_headers)
+
+        # Fetch all registrations for this event
+        event_registrations = EventRegistration.objects.filter(event=event)
+
+        for registration in event_registrations:
+            # Fetch the responses for each registration
+            responses = RegistrationResponse.objects.filter(registered_event=registration)
+
+            # Collect the response data for each registration
+            response_data = []
+            for response in responses:
+                response_data.append(f"{response.question.question}: {response.response}")
+
+            # Combine the responses into a single string (separated by a comma)
+            response_text = ', '.join(response_data) if response_data else 'No Responses'
+
+            # Add the registration data to the sheet
+            registration_row = [
+                registration.user.username,
+                registration.applied_on,
+                response_text
+            ]
+            sheet.append(registration_row)
+
+        # Create an HTTP response with the Excel file
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename=event_{event.id}_data.xlsx'
+        workbook.save(response)
+        
+        return response

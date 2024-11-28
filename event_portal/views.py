@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from .models import *
 from account.permissions import *
 from .serializers import *
+from django.core.exceptions import ObjectDoesNotExist
 
 # manage category
 class CreateEventCategory(APIView):
@@ -41,28 +42,41 @@ class UpdateEventCategory(APIView):
         except EventCategory.DoesNotExist:
             return Response({"error": "Event category not found"}, status=status.HTTP_404_NOT_FOUND)
 #---------------------------------------------------- manage Event
+
 class CreateEvent(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         event_data = request.data.copy()
-        event_data['posted_by'] = request.user.id  # Add the current user's ID
+        event_data['posted_by'] = request.user.id  
         
-        # Serialize the event data first
         event_serializer = EventSerializer(data=event_data)
         
         if event_serializer.is_valid():
-            event = event_serializer.save()  # Save the event and get the instance
-            
-            # Handle event_question data if provided
+            event = event_serializer.save()  
+
             event_questions = request.data.get('event_question', [])
+
             for question_data in event_questions:
-                question = Question.objects.get(id=question_data['question'])  # Assuming `question` is the ID
+                question = None
+                if 'question' in question_data:
+                    try:
+                        question = Question.objects.get(question=question_data['question'])
+                    except ObjectDoesNotExist:
+                        pass
+                
+                if not question:
+                    question = Question.objects.create(
+                        question=question_data.get('question', ''),
+                        help_text=question_data.get('help_text', ''),
+                        options=question_data.get('option', ''),
+                        is_faq=question_data.get('is_faq', False)
+                    )
+                
                 EventQuestion.objects.create(event=event, question=question)
 
             return Response({
                 "message": "Event created successfully",
-                "event_id": event.id  # Return the created event ID
             }, status=status.HTTP_201_CREATED)
         
         return Response(event_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -71,8 +85,8 @@ class RetrieveEvent(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        events = Event.objects.all()  # Retrieve all events
-        serializer = EventSerializer(events, many=True, context={'request': request})
+        events = Event.objects.all()  # Fetch all events
+        serializer = EventRetrieveSerializer(events, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class UpdateEvent(APIView):
@@ -142,7 +156,7 @@ class ActiveEvent(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
         events = Event.objects.filter(is_active=True)
-        serializer = EventSerializer(events, many=True, context={'request': request})
+        serializer = EventRetrieveSerializer(events, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 # Event by category
@@ -150,7 +164,7 @@ class EventByCategory(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request, category_id):
         events = Event.objects.filter(category_id=category_id)
-        serializer = EventSerializer(events, many=True, context={'request': request})
+        serializer = EventRetrieveSerializer(events, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 # delete event question

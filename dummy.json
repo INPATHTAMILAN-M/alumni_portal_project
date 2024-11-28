@@ -1,0 +1,35 @@
+{
+    "title": "Sample Event",
+    "category": 1,
+    "start_date": "2024-10-25",
+    "start_time": "15:00:00",
+    "venue": "Main Hall",
+    "address": "123 Main St",
+    "link": "http://example.com",
+    "is_public": true,
+    "need_registration": true,
+    "registration_close_date": "2024-10-20",
+    "description": "This is a sample event.",
+    "event_wallpaper": "file", 
+    "instructions": "Please arrive 30 minutes early.",
+    "event_question": [
+        {
+            "question": "Accommodation details",
+            "help_text": "Please let us know number of people you will require accommodation for, leave empty if none.",
+            "option": "",
+            "is_faq": true
+        },
+        {
+            "question": "Food preferences",
+            "help_text": "Choose an option of your food preference ",
+            "option": "Veg, Non-Veg",
+            "is_faq": false
+        },
+        {
+            "question": "T-shirt size",
+            "help_text": "Please select a size that fits you",
+            "option": "S,M,L,XL,XXL",
+            "is_faq": true
+        }
+    ]
+}

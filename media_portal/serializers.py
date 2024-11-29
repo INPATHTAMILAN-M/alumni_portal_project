@@ -149,13 +149,13 @@ class MemberBirthdaySerializer(serializers.ModelSerializer):
     # Using SerializerMethodField to get the absolute URL of the profile picture
     profile_picture = serializers.SerializerMethodField()
     fullname = serializers.CharField(source='user.get_full_name', read_only=True)
-    batch = serializers.CharField(source='batch.title', read_only=True)
+    batch = serializers.CharField(source='batch.end_year', read_only=True)
     course = serializers.CharField(source='course.department.short_name', read_only=True)
     member_id = serializers.IntegerField(source='id', read_only=True)
 
     class Meta:
         model = Member
-        fields = ['profile_picture', 'fullname', 'batch', 'course', 'member_id', 'dob']
+        fields = ['profile_picture', 'fullname','email', 'batch', 'course', 'member_id', 'dob']
     def get_profile_picture(self, obj):
         """
         Method to get the absolute URL for the profile picture.
@@ -177,3 +177,38 @@ class AlbumSerializer(serializers.ModelSerializer):
         model = Album
         fields = ['id', 'album_name', 'description', 'album_location', 'album_date', 
                   'public_view', 'created_on', 'created_by', 'photos']
+        
+
+class MemoryTagsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MemoryTags
+        fields = ['tag']
+
+class MemoryPhotosSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MemoryPhotos
+        fields = ['photo']
+
+class MemorySerializer(serializers.ModelSerializer):
+    tags = MemoryTagsSerializer(many=True, write_only=True)
+    photos = MemoryPhotosSerializer(many=True, write_only=True)
+
+    class Meta:
+        model = Memories
+        fields = ['id', 'year', 'month', 'approved', 'tags', 'photos']
+        read_only_fields = ['approved']
+
+    def create(self, validated_data):
+        tags_data = validated_data.pop('tags', [])
+        photos_data = validated_data.pop('photos', [])
+        memory = Memories.objects.create(**validated_data)
+
+        # Save tags
+        for tag_data in tags_data:
+            MemoryTags.objects.create(memory=memory, **tag_data)
+
+        # Save photos
+        for photo_data in photos_data:
+            MemoryPhotos.objects.create(memory=memory, **photo_data)
+
+        return memory

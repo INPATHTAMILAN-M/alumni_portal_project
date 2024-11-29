@@ -517,12 +517,280 @@ class AlbumView(APIView):
 
             if is_creator or is_alumni_manager or is_adminstrator:
                 album.delete()
-                return Response({"detail": "Album deleted successfully."}, status=status.HTTP_200_OK)
+                return Response({"message": "Album deleted successfully."}, status=status.HTTP_200_OK)
             else:
                 return Response(
-                    {"detail": "You do not have permission to delete this album."},
+                    {"message": "You do not have permission to delete this album."},
                     status=status.HTTP_403_FORBIDDEN
                 )
         except Album.DoesNotExist:
-            return Response({"detail": "Album not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "Album not found."}, status=status.HTTP_404_NOT_FOUND)
         
+class AlbumDetailView(APIView):
+
+    def get(self, request, album_id):
+        # Retrieve the album by ID
+        album = get_object_or_404(Album, id=album_id)
+
+        # Serialize the album data
+        album_data = AlbumSerializer(album).data
+
+        # Filter and serialize only the approved photos
+        approved_photos = AlbumPhotos.objects.filter(album=album, approved=True)
+        photo_urls = [request.build_absolute_uri(photo.photo.url) for photo in approved_photos]
+
+        # Replace photos in the response with only approved photos
+        album_data['photos'] = [
+            {
+                "id": photo.id,
+                "photo": request.build_absolute_uri(photo.photo.url),
+                "uploaded_on": photo.uploaded_on,
+            }
+            for photo in approved_photos
+        ]
+
+        return Response(album_data, status=status.HTTP_200_OK)
+    
+    def get(self, request):
+        # Retrieve all albums
+        albums = Album.objects.all()
+        response_data = []
+
+        # Iterate over each album to add approved photos
+        for album in albums:
+            serialized_album = AlbumSerializer(album).data
+
+            # Filter approved photos for the current album
+            approved_photos = AlbumPhotos.objects.filter(album=album, approved=True)
+            serialized_album['photos'] = [
+                {
+                    "id": photo.id,
+                    "photo": request.build_absolute_uri(photo.photo.url),
+                    "uploaded_on": photo.uploaded_on,
+                }
+                for photo in approved_photos
+            ]
+
+            # Append the album data to the response list
+            response_data.append(serialized_album)
+
+        return Response(response_data, status=status.HTTP_200_OK)
+    
+    def post(self, request, photo_id):
+        # Check if the photo exists
+        try:
+            photo = AlbumPhotos.objects.get(id=photo_id)
+        except AlbumPhotos.DoesNotExist:
+            return Response({"message": "Photo not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check if the user is an admin, alumni manager, or the creator of the album
+        if (not request.user.groups.filter(name='Alumni_Manager').exists() and not request.user.groups.filter(name='Adminstrator').exists()):
+            return Response({"message": "You do not have permission to approve this photo."}, status=status.HTTP_403_FORBIDDEN)
+
+        # Mark the photo as approved
+        photo.approved = True
+        photo.save()
+
+        return Response({"message": "Photo approved successfully."}, status=status.HTTP_200_OK)
+    
+class AlbumsWithUnapprovedPhotosView(APIView):
+    def get(self, request):
+        # Retrieve all albums
+        albums = Album.objects.all()
+        response_data = []
+
+        for album in albums:
+            # Serialize the album data
+            serialized_album = AlbumSerializer(album).data
+            
+            # Filter photos where approved=False for this album
+            unapproved_photos = AlbumPhotos.objects.filter(album=album, approved=False)
+            serialized_photos = [
+                {
+                    "id": photo.id,
+                    "photo": photo.photo.url,  # Ensure the absolute URL is included
+                    "uploaded_on": photo.uploaded_on,
+                    "approved": photo.approved
+                }
+                for photo in unapproved_photos
+            ]
+            
+            # Add filtered photos to the album data
+            serialized_album["photos"] = serialized_photos
+            
+            # Append the album with its unapproved photos to the response
+            response_data.append(serialized_album)
+
+        return Response(response_data, status=status.HTTP_200_OK)
+
+class MemoryView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request):
+        # Create the memory instance
+        memory_data = {
+            'year': request.data.get('year'),
+            'month': request.data.get('month'),
+            'approved': request.user.groups.filter(name='Alumni_Manager').exists() or request.user.groups.filter(name='Administrator').exists()
+        }
+        
+        try:
+            user = User.objects.get(id=request.user.id)  # Ensure that the user exists
+        except User.DoesNotExist:
+            return Response({"message": "User not found."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        memory_data['created_by'] = user  # Assign the user instance
+        
+        memory = Memories.objects.create(**memory_data)
+
+        # Handling tags
+        tags = request.data.getlist('tags')  # List of tags
+        if tags:
+            for tag in tags:
+                MemoryTags.objects.create(memory=memory, tag=tag)
+
+        # Handling photos
+        photos = request.FILES.getlist('photos')  # Multiple files (photos)
+        if photos:
+            for photo in photos:
+                MemoryPhotos.objects.create(memory=memory, photo=photo)
+
+        return Response(
+            {"message": "Memory created successfully."},
+            status=status.HTTP_201_CREATED
+        )
+    
+
+    def get(self, request, memory_id=None):
+        if memory_id:
+            # Retrieve a single memory by ID
+            try:
+                memory = Memories.objects.get(id=memory_id)
+                memory_data = MemorySerializer(memory).data
+                memory_data['created_by'] = memory.created_by.username
+                memory_data['tags'] = [
+                    tag.tag for tag in MemoryTags.objects.filter(memory=memory)
+                ]
+                memory_data['photos'] = [
+                    request.build_absolute_uri(photo.photo.url) 
+                    for photo in MemoryPhotos.objects.filter(memory=memory)
+                ]
+                return Response(memory_data, status=status.HTTP_200_OK)
+            except Memories.DoesNotExist:
+                return Response({"message": "Memory not found."}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            # Retrieve all memories
+            memories = Memories.objects.all()
+            all_memories_data = []
+            for memory in memories:
+                memory_data = MemorySerializer(memory).data
+                memory_data['created_by'] = memory.created_by.username
+                memory_data['tags'] = [
+                    tag.tag for tag in MemoryTags.objects.filter(memory=memory)
+                ]
+                memory_data['photos'] = [
+                    request.build_absolute_uri(photo.photo.url) 
+                    for photo in MemoryPhotos.objects.filter(memory=memory)
+                ]
+                all_memories_data.append(memory_data)
+            return Response(all_memories_data, status=status.HTTP_200_OK)
+        
+
+    def patch(self, request, memory_id):
+        # Check if the user is an alumni manager or administrator
+        if not (request.user.groups.filter(name__in=['Alumni_Manager', 'Administrator']).exists()):
+            return Response(
+                {"message": "You do not have permission to approve memories."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Fetch the memory
+        try:
+            memory = Memories.objects.get(id=memory_id, approved=False)
+        except Memories.DoesNotExist:
+            return Response(
+                {"message": "Memory not found or already approved."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Update the memory's `approved` status
+        memory.approved = True
+        memory.save()
+
+        return Response(
+            {"message": "Memories approved successfully."},
+            status=status.HTTP_200_OK
+        )
+    
+    def delete(self, request, photo_id):
+        try:
+            photo = MemoryPhotos.objects.get(id=photo_id)
+        except MemoryPhotos.DoesNotExist:
+            return Response(
+                {"message": "Photo not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Allow deletion only by the creator or administrators
+        if not (photo.memory.created_by == request.user or request.user.groups.filter(name='Alumni_Manager').exists() or request.user.groups.filter(name='Administrator').exists()):
+            return Response( {"message": "You do not have permission to delete this photo."},status=status.HTTP_403_FORBIDDEN)
+
+        photo.delete()
+        return Response(
+            {"message": "Photo deleted successfully."},
+            status=status.HTTP_200_OK
+        )
+    
+    def delete(self, request, tag_id):
+        try:
+            tag = MemoryTags.objects.get(id=tag_id)
+        except MemoryTags.DoesNotExist:
+            return Response(
+                {"message": "Tag not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Allow deletion only by the creator or administrators
+        if not (tag.memory.created_by == request.user or request.user.groups.filter(name='Alumni_Manager').exists() or request.user.groups.filter(name='Administrator').exists()):
+            return Response( {"message": "You do not have permission to delete this photo."},status=status.HTTP_403_FORBIDDEN)
+
+        tag.delete()
+        return Response(
+            {"message": "Tag deleted successfully."},
+            status=status.HTTP_200_OK
+        )
+    
+    def delete(self, request, memory_id):
+        try:
+            memory = Memories.objects.get(id=memory_id)
+        except Memories.DoesNotExist:
+            return Response(
+                {"message": "Memory not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Allow deletion only by the creator, alumni manager, or administrators
+        if not (memory.created_by == request.user or request.user.groups.filter(name='Alumni_Manager').exists() or request.user.groups.filter(name='Administrator').exists()):
+            return Response( {"message": "You do not have permission to delete this photo."},status=status.HTTP_403_FORBIDDEN)
+
+        memory.delete()
+        return Response(
+            {"message": "Memory deleted successfully."},
+            status=status.HTTP_200_OK
+        )
+
+
+class ApprovedMemoriesView(APIView):
+    
+    def get(self, request):
+        approved_memories = Memories.objects.filter(approved=True)
+        serialized_memories = MemorySerializer(approved_memories, many=True)
+        return Response(serialized_memories.data, status=status.HTTP_200_OK)
+
+class PendingMemoriesView(APIView):
+   
+    def get(self, request):
+        pending_memories = Memories.objects.filter(approved=False)
+        serialized_memories = MemorySerializer(pending_memories, many=True)
+        return Response(serialized_memories.data, status=status.HTTP_200_OK)

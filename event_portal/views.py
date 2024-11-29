@@ -10,6 +10,7 @@ from .serializers import *
 from django.core.exceptions import ObjectDoesNotExist
 import openpyxl
 from django.http import HttpResponse
+from django.utils import timezone
 
 # manage category
 class CreateEventCategory(APIView):
@@ -181,37 +182,37 @@ class RecommendedQuestions(APIView):
 
 # Event by category
 class EventByCategory(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request):
         category_id = request.data.get('category_id')
         
-        today = datetime.timezone.now().date()  
+        today = timezone.now().date()  
         
         if category_id:
-            events = Event.objects.filter(category_id=category_id, is_active=True, event_date__gte=today)
+            events = Event.objects.filter(category_id=category_id, is_active=True, start_date=today)
         else:
-            events = Event.objects.filter(is_active=True, event_date__gte=today)
+            events = Event.objects.filter(is_active=True, start_date=today)
         
         serializer = EventRetrieveSerializer(events, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class PastEventByCategory(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request):
         category_id = request.data.get('category_id')
-        today = datetime.timezone.now().date()  
+        today = timezone.now().date()  
         if category_id:
             events = Event.objects.filter(
                 category_id=category_id,
                 is_active=True,
-                event_date__lt=today 
+                start_date=today 
             )
         else:
             events = Event.objects.filter(
                 is_active=True,
-                event_date__lt=today 
+                start_date=today 
             )
         serializer = EventRetrieveSerializer(events, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)

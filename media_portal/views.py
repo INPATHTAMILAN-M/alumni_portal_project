@@ -61,10 +61,9 @@ class PostViewSet(viewsets.ModelViewSet):
 # create post
         
 class CreatePost(APIView):
-    permission_classes = [IsAuthenticated]  # Ensure the user is authenticated
+    permission_classes = [IsAuthenticated]  
 
     def post(self, request):
-        # Extract data from request
 
         post_category_id = request.data.get('post_category')
         published = request.data.get('published', False)
@@ -141,7 +140,6 @@ class PostPendingViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def published_posts(self, request):
         
-        # Admin sees all published posts
         published_posts = Post.objects.filter(published=True)
         serializer = self.get_serializer(published_posts, many=True)
         return Response(serializer.data)
@@ -170,6 +168,7 @@ class PostPendingViewSet(viewsets.ModelViewSet):
             {"message": "published successfully"},
             status=status.HTTP_200_OK
         )
+        
 # manage post Comments
 class PostCommentViewSet(viewsets.ModelViewSet):
     queryset = PostComment.objects.all()
@@ -183,11 +182,10 @@ class PostCommentViewSet(viewsets.ModelViewSet):
     def create_postcomments(self, request, post_id):
 
         try:
-            post = Post.objects.get(id=post_id)  # Get the post object
+            post = Post.objects.get(id=post_id) 
         except Post.DoesNotExist:
             return Response({"message": "Post not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Add post and user to the serializer's data
         data = request.data.copy()
         data["post"] = post.id
         serializer = self.get_serializer(data=data)
@@ -196,11 +194,9 @@ class PostCommentViewSet(viewsets.ModelViewSet):
         return Response({"message": "Comments posted"}, status=status.HTTP_201_CREATED)
 
 class PostCommentDelete(APIView):
-    permission_classes = [IsAuthenticated]  # Ensure the user is authenticated
-
+    permission_classes = [IsAuthenticated]  
     def delete(self, request, comment_id):
         try:
-            # Get the comment by ID
             comment = PostComment.objects.get(id=comment_id)
 
             if comment.comment_by != request.user and not (
@@ -208,13 +204,11 @@ class PostCommentDelete(APIView):
             request.user.groups.filter(name='Alumni_Manager').exists() ):
                 return Response({"message": "You do not have permission to delete this comment."}, status=status.HTTP_403_FORBIDDEN)
         
-            # Perform the deletion
             comment.delete()
 
             return Response({"message": "Comment deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
 
         except PostComment.DoesNotExist:
-            # If the comment doesn't exist
             return Response({"message": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
         
 # manage post likes
@@ -227,21 +221,17 @@ class PostLikeViewSet(viewsets.ModelViewSet):
     def like_post(self, request, post_id):
         user = request.user
         
-        # Ensure that the post exists
         try:
             post = Post.objects.get(id=post_id)
         except Post.DoesNotExist:
             return Response({"message": "Post not found."}, status=status.HTTP_404_NOT_FOUND)
         
-        # Check if the user has already liked the post
         existing_like = PostLike.objects.filter(post=post, liked_by=user).first()
         
         if existing_like:
-            # If a like exists, remove it (dislike)
             existing_like.delete()
             return Response({"message": "Post disliked"}, status=status.HTTP_200_OK)
         else:
-            # If no like exists, create a new like
             PostLike.objects.create(post=post, liked_by=user)
             return Response({"message": "Post liked"}, status=status.HTTP_201_CREATED)
 
@@ -252,51 +242,40 @@ class UpcomingBirthdayListAPIView(APIView):
         # Get the current date
         today = timezone.now().date()
 
-        # Get the current year to check for upcoming birthdays in the future
         current_year = today.year
 
-        # Query for members with birthdays in the upcoming weeks or months
         members = Member.objects.filter(
             dob__month__gte=today.month,
             dob__year=current_year,
             user__isnull=False
         ).order_by('dob')[:10]
 
-        # Filter out members whose birthdays are before today in the current month
         upcoming_birthdays = []
         for member in members:
-            # Only include members whose birthday hasn't passed yet
             if member.dob.day >= today.day or member.dob.month > today.month:
                 upcoming_birthdays.append(member)
 
-        # Serialize the members data
         serializer = MemberBirthdaySerializer(upcoming_birthdays, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 # list all members
 class UpcomingBirthdayAll(APIView):
     def get(self, request):
-        # Get the current date
         today = timezone.now().date()
 
-        # Get the current year to check for upcoming birthdays in the future
         current_year = today.year
 
-        # Query for members with birthdays in the upcoming weeks or months
         members = Member.objects.filter(
             dob__month__gte=today.month,
             dob__year=current_year,
             user__isnull=False
         ).order_by('dob')
 
-        # Filter out members whose birthdays are before today in the current month
         upcoming_birthdays = []
         for member in members:
-            # Only include members whose birthday hasn't passed yet
             if member.dob.day >= today.day or member.dob.month > today.month:
                 upcoming_birthdays.append(member)
 
-        # Serialize the members data
         serializer = MemberBirthdaySerializer(upcoming_birthdays, many=True,  context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -304,13 +283,10 @@ class UpcomingBirthdayAll(APIView):
 class SendBirthdayWishes(APIView):
     def post(self, request, member_id):
         try:
-            # Fetch member by member_id
             member = Member.objects.get(id=member_id)
             
-            # Check if today is the member's birthday
             if member.dob and member.dob.month == date.today().month and member.dob.day == date.today().day:
                 
-                # Send birthday email
                 subject = 'Happy Birthday!'
                 message = f"Dear {member.salutation} {member.user.first_name} {member.user.last_name},\n\nWe wish you a very Happy Birthday! 🎉\n\nBest regards,\n {request.user.email}"
                 from_email = settings.EMAIL_HOST_USER
@@ -329,31 +305,25 @@ class SendBirthdayWishes(APIView):
  
 class PostFilterView(APIView):
     def post(self, request, *args, **kwargs):
-        # Extract data from request
         post_category = request.data.get('post_category', None)
         title = request.data.get('title', None)
-        published = request.data.get('published', None)  # Optional filter for published status
+        published = request.data.get('published', None)  
         
-        # Default filter for published posts
-        filters = Q(published=True)  # Default to published=True
+        filters = Q(published=True)  
 
-        # Additional filtering based on user-provided criteria
         if post_category not in [None, ""]:
             filters &= Q(post_category__id=post_category)
 
         if title not in [None, ""]:
             filters &= Q(title__icontains=title)
 
-        # If 'published' is specified, update the filter to include or exclude published posts
         if published is not None:
             filters &= Q(published=published)
 
-        # Apply the filters to the Post queryset with prefetch_related to optimize DB queries
         queryset = Post.objects.prefetch_related(
             'post_category'
         ).filter(filters)
 
-        # Serialize the filtered data
         serializer = PostSerializer(queryset, many=True, context={'request': request})
 
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -367,7 +337,6 @@ class AlbumView(APIView):
     
 
     def post(self, request):
-        # Extract data from the request
         data = request.data
         album_name = data.get('album_name')
         description = data.get('description')
@@ -375,14 +344,12 @@ class AlbumView(APIView):
         album_date = data.get('album_date')
         public_view = data.get('public_view', True)
 
-        # Validate required fields
         if not album_name or not album_date:
             return Response(
                 {"message": "album_name and album_date are required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Create the album
         album = Album.objects.create(
             album_name=album_name,
             description=description,
@@ -392,7 +359,6 @@ class AlbumView(APIView):
             created_by=request.user,
         )
 
-        # Respond with the album ID and a success message
         return Response(
             {"id": album.id, "message": "Album created successfully."},
             status=status.HTTP_201_CREATED,
@@ -403,7 +369,6 @@ class AlbumView(APIView):
 
 
     def put(self, request, album_id):
-        # Retrieve the album
         try:
             album = Album.objects.get(id=album_id, created_by=request.user)
         except Album.DoesNotExist:
@@ -412,7 +377,6 @@ class AlbumView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # Retrieve files from the request
         files = request.FILES.getlist('photos')
 
         if not files:
@@ -421,7 +385,6 @@ class AlbumView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Save each photo to the album
         photo_objects = []
         for file in files:
             photo = AlbumPhotos(album=album, photo=file)
@@ -436,17 +399,15 @@ class AlbumView(APIView):
 
     def get(self, request, album_id=None):
         if album_id:
-            # Retrieve a specific album by ID
             try:
                 album = Album.objects.get(id=album_id)
                 serialized_album = AlbumSerializer(album, context={'request': request}).data
                 serialized_album['created_on'] = album.created_on
-                serialized_album['created_by'] = album.created_by.username  # Assuming `User` has a `username` field
+                serialized_album['created_by'] = album.created_by.username 
                 return Response(serialized_album, status=status.HTTP_200_OK)
             except Album.DoesNotExist:
                 return Response({"message": "Album not found."}, status=status.HTTP_404_NOT_FOUND)
         else:
-            # Retrieve all albums
             albums = Album.objects.all()
             serialized_albums = AlbumSerializer(albums, many=True, context={'request': request}).data
             for album in serialized_albums:
@@ -458,17 +419,14 @@ class AlbumView(APIView):
 
     def patch(self, request, album_id):
         try:
-            # Fetch the album instance
             album = Album.objects.get(id=album_id)
             
-            # Update album fields
             serializer = AlbumSerializer(album, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
 
-                # Check if photos are included in the request
                 if 'photos' in request.FILES:
-                    photos = request.FILES.getlist('photos')  # Allow multiple photos
+                    photos = request.FILES.getlist('photos') 
                     for photo in photos:
                         AlbumPhotos.objects.create(album=album, photo=photo)
 
@@ -486,10 +444,8 @@ class AlbumView(APIView):
         
     def delete(self, request, photo_id):
         try:
-            # Fetch the photo
             photo = AlbumPhotos.objects.get(id=photo_id)
 
-            # Check if the user is allowed to delete the photo
             is_creator = photo.album.created_by == request.user
             is_alumni_manager = request.user.groups.filter(name='Alumni_Manager').exists()
             is_adminstrator = request.user.groups.filter(name='Administrator').exists()
@@ -510,7 +466,6 @@ class AlbumView(APIView):
         try:
             album = Album.objects.get(id=album_id)
 
-            # Check user permissions
             is_creator = album.created_by == request.user
             is_alumni_manager = request.user.groups.filter(name='Alumni_Manager').exists()
             is_adminstrator = request.user.groups.filter(name='Administrator').exists()
@@ -529,17 +484,13 @@ class AlbumView(APIView):
 class AlbumDetailView(APIView):
 
     def get(self, request, album_id):
-        # Retrieve the album by ID
         album = get_object_or_404(Album, id=album_id)
 
-        # Serialize the album data
         album_data = AlbumSerializer(album).data
 
-        # Filter and serialize only the approved photos
         approved_photos = AlbumPhotos.objects.filter(album=album, approved=True)
         photo_urls = [request.build_absolute_uri(photo.photo.url) for photo in approved_photos]
 
-        # Replace photos in the response with only approved photos
         album_data['photos'] = [
             {
                 "id": photo.id,
@@ -552,15 +503,12 @@ class AlbumDetailView(APIView):
         return Response(album_data, status=status.HTTP_200_OK)
     
     def get(self, request):
-        # Retrieve all albums
         albums = Album.objects.all()
         response_data = []
 
-        # Iterate over each album to add approved photos
         for album in albums:
             serialized_album = AlbumSerializer(album).data
 
-            # Filter approved photos for the current album
             approved_photos = AlbumPhotos.objects.filter(album=album, approved=True)
             serialized_album['photos'] = [
                 {
@@ -571,23 +519,19 @@ class AlbumDetailView(APIView):
                 for photo in approved_photos
             ]
 
-            # Append the album data to the response list
             response_data.append(serialized_album)
 
         return Response(response_data, status=status.HTTP_200_OK)
     
     def post(self, request, photo_id):
-        # Check if the photo exists
         try:
             photo = AlbumPhotos.objects.get(id=photo_id)
         except AlbumPhotos.DoesNotExist:
             return Response({"message": "Photo not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Check if the user is an admin, alumni manager, or the creator of the album
         if (not request.user.groups.filter(name='Alumni_Manager').exists() and not request.user.groups.filter(name='Adminstrator').exists()):
             return Response({"message": "You do not have permission to approve this photo."}, status=status.HTTP_403_FORBIDDEN)
 
-        # Mark the photo as approved
         photo.approved = True
         photo.save()
 
@@ -595,30 +539,25 @@ class AlbumDetailView(APIView):
     
 class AlbumsWithUnapprovedPhotosView(APIView):
     def get(self, request):
-        # Retrieve all albums
         albums = Album.objects.all()
         response_data = []
 
         for album in albums:
-            # Serialize the album data
             serialized_album = AlbumSerializer(album).data
             
-            # Filter photos where approved=False for this album
             unapproved_photos = AlbumPhotos.objects.filter(album=album, approved=False)
             serialized_photos = [
                 {
                     "id": photo.id,
-                    "photo": photo.photo.url,  # Ensure the absolute URL is included
+                    "photo": photo.photo.url,  
                     "uploaded_on": photo.uploaded_on,
                     "approved": photo.approved
                 }
                 for photo in unapproved_photos
             ]
             
-            # Add filtered photos to the album data
             serialized_album["photos"] = serialized_photos
             
-            # Append the album with its unapproved photos to the response
             response_data.append(serialized_album)
 
         return Response(response_data, status=status.HTTP_200_OK)
@@ -628,7 +567,6 @@ class MemoryView(APIView):
     parser_classes = (MultiPartParser, FormParser)
 
     def post(self, request):
-        # Create the memory instance
         memory_data = {
             'year': request.data.get('year'),
             'month': request.data.get('month'),
@@ -636,22 +574,20 @@ class MemoryView(APIView):
         }
         
         try:
-            user = User.objects.get(id=request.user.id)  # Ensure that the user exists
+            user = User.objects.get(id=request.user.id) 
         except User.DoesNotExist:
             return Response({"message": "User not found."}, status=status.HTTP_400_BAD_REQUEST)
         
-        memory_data['created_by'] = user  # Assign the user instance
+        memory_data['created_by'] = user 
         
         memory = Memories.objects.create(**memory_data)
 
-        # Handling tags
-        tags = request.data.getlist('tags')  # List of tags
+        tags = request.data.getlist('tags')  
         if tags:
             for tag in tags:
                 MemoryTags.objects.create(memory=memory, tag=tag)
 
-        # Handling photos
-        photos = request.FILES.getlist('photos')  # Multiple files (photos)
+        photos = request.FILES.getlist('photos') 
         if photos:
             for photo in photos:
                 MemoryPhotos.objects.create(memory=memory, photo=photo)
@@ -664,7 +600,6 @@ class MemoryView(APIView):
 
     def get(self, request, memory_id=None):
         if memory_id:
-            # Retrieve a single memory by ID
             try:
                 memory = Memories.objects.get(id=memory_id)
                 memory_data = MemorySerializer(memory).data
@@ -680,7 +615,6 @@ class MemoryView(APIView):
             except Memories.DoesNotExist:
                 return Response({"message": "Memory not found."}, status=status.HTTP_404_NOT_FOUND)
         else:
-            # Retrieve all memories
             memories = Memories.objects.all()
             all_memories_data = []
             for memory in memories:
@@ -698,14 +632,12 @@ class MemoryView(APIView):
         
 
     def patch(self, request, memory_id):
-        # Check if the user is an alumni manager or administrator
         if not (request.user.groups.filter(name__in=['Alumni_Manager', 'Administrator']).exists()):
             return Response(
                 {"message": "You do not have permission to approve memories."},
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # Fetch the memory
         try:
             memory = Memories.objects.get(id=memory_id, approved=False)
         except Memories.DoesNotExist:
@@ -714,7 +646,6 @@ class MemoryView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Update the memory's `approved` status
         memory.approved = True
         memory.save()
 
@@ -732,7 +663,6 @@ class MemoryView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Allow deletion only by the creator or administrators
         if not (photo.memory.created_by == request.user or request.user.groups.filter(name='Alumni_Manager').exists() or request.user.groups.filter(name='Administrator').exists()):
             return Response( {"message": "You do not have permission to delete this photo."},status=status.HTTP_403_FORBIDDEN)
 
@@ -751,7 +681,6 @@ class MemoryView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Allow deletion only by the creator or administrators
         if not (tag.memory.created_by == request.user or request.user.groups.filter(name='Alumni_Manager').exists() or request.user.groups.filter(name='Administrator').exists()):
             return Response( {"message": "You do not have permission to delete this photo."},status=status.HTTP_403_FORBIDDEN)
 
@@ -770,7 +699,6 @@ class MemoryView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Allow deletion only by the creator, alumni manager, or administrators
         if not (memory.created_by == request.user or request.user.groups.filter(name='Alumni_Manager').exists() or request.user.groups.filter(name='Administrator').exists()):
             return Response( {"message": "You do not have permission to delete this photo."},status=status.HTTP_403_FORBIDDEN)
 

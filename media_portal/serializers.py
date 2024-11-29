@@ -144,26 +144,48 @@ class PostSerializer(serializers.ModelSerializer):
             "id": obj.post_category.id,  # Return the ID of the post category
             "name": obj.post_category.name  # Return the name of the post category
         }
-    
+
+
 class MemberBirthdaySerializer(serializers.ModelSerializer):
-    # Using SerializerMethodField to get the absolute URL of the profile picture
     profile_picture = serializers.SerializerMethodField()
     fullname = serializers.CharField(source='user.get_full_name', read_only=True)
     batch = serializers.CharField(source='batch.end_year', read_only=True)
     course = serializers.CharField(source='course.department.short_name', read_only=True)
     member_id = serializers.IntegerField(source='id', read_only=True)
+    faculty = serializers.BooleanField(read_only=True)
+    department = serializers.CharField(read_only=True)
 
     class Meta:
         model = Member
-        fields = ['profile_picture', 'fullname','email', 'batch', 'course', 'member_id', 'dob']
+        fields = ['profile_picture', 'fullname', 'email', 'batch', 'course', 'member_id', 'dob', 'faculty', 'department']
+
     def get_profile_picture(self, obj):
         """
         Method to get the absolute URL for the profile picture.
         """
         if obj.profile_picture:
-            # Combine the request's host with the relative URL to form the absolute URL
             return self.context['request'].build_absolute_uri(obj.profile_picture.url)
         return None
+
+    def to_representation(self, instance):
+        """
+        Customizing the representation based on the user's group.
+        """
+        representation = super().to_representation(instance)
+        
+        user_groups = instance.user.groups.values_list('name', flat=True)
+        
+        if 'Faculty' in user_groups:
+            # For faculty, show the department directly from the Member model
+            representation['faculty'] = True
+            representation['department'] = instance.department.short_name if instance.department else 'N/A'
+        elif 'Alumni' in user_groups:
+            # For alumni, show the department from the course
+            representation['faculty'] = False
+            representation['department'] = instance.course.department.short_name if instance.course and instance.course.department else 'N/A'
+        
+        return representation
+
     
 class AlbumPhotoSerializer(serializers.ModelSerializer):
     class Meta:

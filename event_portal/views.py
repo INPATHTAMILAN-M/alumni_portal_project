@@ -182,11 +182,40 @@ class RecommendedQuestions(APIView):
 # Event by category
 class EventByCategory(APIView):
     permission_classes = [IsAuthenticated]
-    def get(self, request, category_id):
-        events = Event.objects.filter(category_id=category_id)
+
+    def get(self, request):
+        category_id = request.data.get('category_id')
+        
+        today = datetime.timezone.now().date()  
+        
+        if category_id:
+            events = Event.objects.filter(category_id=category_id, is_active=True, event_date__gte=today)
+        else:
+            events = Event.objects.filter(is_active=True, event_date__gte=today)
+        
         serializer = EventRetrieveSerializer(events, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+class PastEventByCategory(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        category_id = request.data.get('category_id')
+        today = datetime.timezone.now().date()  
+        if category_id:
+            events = Event.objects.filter(
+                category_id=category_id,
+                is_active=True,
+                event_date__lt=today 
+            )
+        else:
+            events = Event.objects.filter(
+                is_active=True,
+                event_date__lt=today 
+            )
+        serializer = EventRetrieveSerializer(events, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
 # delete question
 
 class DeleteQuestion(APIView):

@@ -190,9 +190,16 @@ class EventByCategory(APIView):
         today = timezone.now().date()  
         
         if category_id:
-            events = Event.objects.filter(category_id=category_id, is_active=True, start_date=today)
+            events = Event.objects.filter(
+                category_id=category_id,
+                is_active=True,
+                start_date__gte=today 
+            )
         else:
-            events = Event.objects.filter(is_active=True, start_date=today)
+            events = Event.objects.filter(
+                is_active=True,
+                start_date__gte=today  
+            )
         
         serializer = EventRetrieveSerializer(events, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -207,12 +214,12 @@ class PastEventByCategory(APIView):
             events = Event.objects.filter(
                 category_id=category_id,
                 is_active=True,
-                start_date=today 
+                start_date__lt=today 
             )
         else:
             events = Event.objects.filter(
                 is_active=True,
-                start_date=today 
+                start_date__lt=today  
             )
         serializer = EventRetrieveSerializer(events, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)

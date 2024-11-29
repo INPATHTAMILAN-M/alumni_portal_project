@@ -22,6 +22,8 @@ urlpatterns = [
     
     # register event
     path('register_event/<int:event_id>/', RegisterEvent.as_view(), name='register_event'),
+    path('registered_details/<int:event_id>/', RetrieveRegisteredEvent.as_view(), name='registered_details'),
+    
     # Export Event
     path('export_event/<int:event_id>/', ExportEvent.as_view(), name='export_event'),
     

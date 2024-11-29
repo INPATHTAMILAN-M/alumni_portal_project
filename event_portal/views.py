@@ -182,7 +182,7 @@ class RecommendedQuestions(APIView):
 
 # Event by category
 class EventByCategory(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         category_id = request.data.get('category_id')
@@ -205,7 +205,7 @@ class EventByCategory(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class PastEventByCategory(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         category_id = request.data.get('category_id')
@@ -283,6 +283,46 @@ class RegisterEvent(APIView):
         return Response({
             "message": "Successfully registered for the event."
         }, status=status.HTTP_201_CREATED)
+
+class RetrieveRegisteredEvent(APIView):
+    # permission_classes = [IsAuthenticated]
+    
+    def get(self, request, event_id):
+        # Retrieve the specific event
+        event = get_object_or_404(Event, id=event_id)
+        
+        # Fetch all registrations for the event
+        registrations = EventRegistration.objects.filter(event=event)
+        
+        if not registrations.exists():
+            return Response({"error": "No registrations found for this event."}, status=status.HTTP_404_NOT_FOUND)
+        
+        all_registered_users = []
+        
+        # For each registration, get the user and their responses
+        for registration in registrations:
+            user_data = {
+                "username": registration.user.username,
+                "email": registration.user.email,
+                "registration_date": registration.applied_on,
+                "responses": []
+            }
+
+            # Fetch all responses for this event registration
+            responses = RegistrationResponse.objects.filter(registered_event=registration)
+            for response in responses:
+                user_data["responses"].append({
+                    "question": response.question.question,
+                    "response": response.response
+                })
+            
+            all_registered_users.append(user_data)
+        
+        return Response({
+            "event_id": event.id,
+            "event_title": event.title,
+            "registered_users": all_registered_users
+        }, status=status.HTTP_200_OK)
 
 # export event data
 class ExportEvent(APIView):

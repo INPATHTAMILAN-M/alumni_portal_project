@@ -36,7 +36,7 @@ class RetrieveEventCategory(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 class UpdateEventCategory(APIView):
-    def Post(self, request, category_id):
+    def post(self, request, category_id):  # 'post' should be lowercase
         try:
             event_category = EventCategory.objects.get(id=category_id)
             event_category.title = request.data.get('category', event_category.title)
@@ -44,6 +44,7 @@ class UpdateEventCategory(APIView):
             return Response({"message": "Event category updated successfully"}, status=status.HTTP_200_OK)
         except EventCategory.DoesNotExist:
             return Response({"error": "Event category not found"}, status=status.HTTP_404_NOT_FOUND)
+
 #---------------------------------------------------- manage Event
 
 class CreateEvent(APIView):
@@ -261,79 +262,60 @@ class ExportEvent(APIView):
         sheet = workbook.active
         sheet.title = f"Event {event.title}"
 
-        # Define headers for event details
+        # Define headers for event details and questions
         headers = [
             'Event Title', 'Category', 'Start Date', 'Start Time', 'Venue',
             'Address', 'Link', 'Is Public', 'Need Registration', 'Registration Close Date',
-            'Description', 'Event Wallpaper', 'Instructions', 'Posted By'
+            'Description', 'Event Wallpaper', 'Instructions', 'Posted By',
+            'Question', 'Options', 'Help Text', 'Is FAQ', 'Username', 'Applied On', 'Responses'
         ]
         sheet.append(headers)
 
-        # Add event details to the sheet
-        row = [
-            event.title,
-            event.category.title,
-            event.start_date,
-            event.start_time,
-            event.venue,
-            event.address,
-            event.link,
-            event.is_public,
-            event.need_registration,
-            event.registration_close_date,
-            event.description,
-            event.event_wallpaper.url if event.event_wallpaper else 'No Wallpaper',
-            event.instructions,
-            event.posted_by.get_full_name()
-        ]
-        sheet.append(row)
-
-        # Add a section for event questions
-        sheet.append([''])  # Empty row
-        sheet.append(['Questions'])
-        question_headers = ['Question', 'Options', 'Help Text', 'Is FAQ']
-        sheet.append(question_headers)
-
-        # Add event questions and their details
-        event_questions = EventQuestion.objects.filter(event=event)
-        for event_question in event_questions:
-            question = event_question.question
-            question_row = [
-                question.question,
-                question.options,
-                question.help_text,
-                question.is_faq
-            ]
-            sheet.append(question_row)
-
-        # Add a section for registrations
-        sheet.append([''])  # Empty row
-        sheet.append(['Registrations'])
-        registration_headers = ['Username', 'Applied On', 'Responses']
-        sheet.append(registration_headers)
-
         # Fetch all registrations for this event
         event_registrations = EventRegistration.objects.filter(event=event)
-
+        
         for registration in event_registrations:
             # Fetch the responses for each registration
             responses = RegistrationResponse.objects.filter(registered_event=registration)
 
             # Collect the response data for each registration
-            response_data = []
-            for response in responses:
-                response_data.append(f"{response.question.question}: {response.response}")
+            response_data = {response.question.question: response.response for response in responses}
+            
+            # Loop through the questions for the event
+            event_questions = EventQuestion.objects.filter(event=event)
+            
+            for event_question in event_questions:
+                question = event_question.question  # Access the Question object via EventQuestion
+                options = question.options  # Access 'options' from the related Question model
+                help_text = question.help_text
+                is_faq = question.is_faq
+                question_response = response_data.get(question.question, 'No Response')
 
-            # Combine the responses into a single string (separated by a comma)
-            response_text = ', '.join(response_data) if response_data else 'No Responses'
-
-            # Add the registration data to the sheet
-            registration_row = [
-                registration.user.username,
-                registration.applied_on,
-                response_text
-            ]
-            sheet.append(registration_row)
+                # Create a row with the event details and the question/response details
+                row = [
+                    event.title,  # Event Title
+                    event.category.title,  # Category
+                    event.start_date,  # Start Date
+                    event.start_time,  # Start Time
+                    event.venue,  # Venue
+                    event.address,  # Address
+                    event.link,  # Link
+                    event.is_public,  # Is Public
+                    event.need_registration,  # Need Registration
+                    event.registration_close_date,  # Registration Close Date
+                    event.description,  # Description
+                    event.event_wallpaper.url if event.event_wallpaper else 'No Wallpaper',  # Event Wallpaper
+                    event.instructions,  # Instructions
+                    event.posted_by.get_full_name(),  # Posted By
+                    question.question,  # Question
+                    options,  # Options (from Question model)
+                    help_text,  # Help Text (from Question model)
+                    is_faq,  # Is FAQ (from Question model)
+                    registration.user.username,  # Username
+                    registration.applied_on,  # Applied On
+                    f"{question.question}: {question_response}"  # Responses
+                ]
+                sheet.append(row)
 
         # Create an HTTP response with the Excel file
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')

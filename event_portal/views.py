@@ -184,7 +184,7 @@ class RecommendedQuestions(APIView):
 class EventByCategory(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def post(self, request):
         category_id = request.data.get('category_id')
         
         today = timezone.now().date()  
@@ -207,7 +207,7 @@ class EventByCategory(APIView):
 class PastEventByCategory(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def post(self, request):
         category_id = request.data.get('category_id')
         today = timezone.now().date()  
         if category_id:

@@ -26,7 +26,7 @@ class CreateEventCategory(APIView):
 
 class RetrieveEventCategory(APIView):
     def get(self, request):
-        event_categories = EventCategory.objects.all()
+        event_categories = EventCategory.objects.all().order_by('-id')
         data = [
             {
                 "category_id": event_category.id,
@@ -87,10 +87,10 @@ class CreateEvent(APIView):
         return Response(event_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class RetrieveEvent(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        events = Event.objects.all()  # Fetch all events
+        events = Event.objects.all().order_by('-id')
         serializer = EventRetrieveSerializer(events, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -98,7 +98,7 @@ class MyRetrieveEvent(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        events = Event.objects.filter(posted_by=self.requested.user) 
+        events = Event.objects.filter(posted_by=self.requested.user).order_by('-id')
         serializer = EventRetrieveSerializer(events, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
     
@@ -174,9 +174,9 @@ class DeactivateEvent(APIView):
 # active Event
 
 class ActiveEvent(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     def get(self, request):
-        events = Event.objects.filter(is_active=True)
+        events = Event.objects.filter(is_active=True).order_by('-id')
         serializer = EventActiveRetrieveSerializer(events, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
     
@@ -202,12 +202,12 @@ class EventByCategory(APIView):
                 category_id=category_id,
                 is_active=True,
                 start_date__gte=today 
-            )
+            ).order_by('-id')
         else:
             events = Event.objects.filter(
                 is_active=True,
                 start_date__gte=today  
-            )
+            ).order_by('-id')
         
         serializer = EventRetrieveSerializer(events, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -223,12 +223,12 @@ class PastEventByCategory(APIView):
                 category_id=category_id,
                 is_active=True,
                 start_date__lt=today 
-            )
+            ).order_by('-id')
         else:
             events = Event.objects.filter(
                 is_active=True,
                 start_date__lt=today  
-            )
+            ).order_by('-id')
         serializer = EventRetrieveSerializer(events, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
     

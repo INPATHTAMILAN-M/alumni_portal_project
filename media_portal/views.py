@@ -140,7 +140,7 @@ class PostPendingViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def published_posts(self, request):
         
-        published_posts = Post.objects.filter(published=True)
+        published_posts = Post.objects.filter(published=True).order_by('-id')
         serializer = self.get_serializer(published_posts, many=True)
         return Response(serializer.data)
 
@@ -488,7 +488,7 @@ class AlbumDetailView(APIView):
 
         album_data = AlbumSerializer(album).data
 
-        approved_photos = AlbumPhotos.objects.filter(album=album, approved=True)
+        approved_photos = AlbumPhotos.objects.filter(album=album, approved=True).order_by('-id')
         photo_urls = [request.build_absolute_uri(photo.photo.url) for photo in approved_photos]
 
         album_data['photos'] = [
@@ -509,7 +509,7 @@ class AlbumDetailView(APIView):
         for album in albums:
             serialized_album = AlbumSerializer(album).data
 
-            approved_photos = AlbumPhotos.objects.filter(album=album, approved=True)
+            approved_photos = AlbumPhotos.objects.filter(album=album, approved=True).order_by('-id')
             serialized_album['photos'] = [
                 {
                     "id": photo.id,
@@ -712,7 +712,7 @@ class MemoryView(APIView):
 class ApprovedMemoriesView(APIView):
     
     def get(self, request):
-        approved_memories = Memories.objects.filter(approved=True)
+        approved_memories = Memories.objects.filter(approved=True).order_by('-id')
         serialized_memories = MemorySerializer(approved_memories, many=True)
         return Response(serialized_memories.data, status=status.HTTP_200_OK)
 

@@ -142,7 +142,7 @@ class MyJobPost(APIView):
 
     def get(self, request):
         try:
-            job_posts = JobPost.objects.filter(posted_by=request.user).annotate(application_count=Count('application'))
+            job_posts = JobPost.objects.filter(posted_by=request.user).annotate(application_count=Count('application')).order_by('-id')
 
             job_posts_data = []
             for job in job_posts:
@@ -346,7 +346,7 @@ class RetrieveBusinessDirectory(APIView):
 class MyBusinessDirectory(APIView):
     def get(self, request):
         try:
-            business_directories = BusinessDirectory.objects.filter(listed_by=request.user)
+            business_directories = BusinessDirectory.objects.filter(listed_by=request.user).order_by('-id')
             data = []
             for business in business_directories:
                 data.append({
@@ -507,7 +507,7 @@ class JobPostMainFilterView(APIView):
             filters &= Q(post_type__icontains=post_type)
 
         # Apply the filters in a single query
-        queryset = JobPost.objects.filter(filters).annotate(application_count=Count('application'))
+        queryset = JobPost.objects.filter(filters).annotate(application_count=Count('application')).order_by('-id')
 
         # Prepare the response data without serializers
         data = []
@@ -562,7 +562,7 @@ class JobPostFilterView(APIView):
             filters &= Q(post_type__icontains=post_type)
 
         # Apply the filters in a single query
-        queryset = JobPost.objects.filter(filters).annotate(application_count=Count('application'))
+        queryset = JobPost.objects.filter(filters).annotate(application_count=Count('application')).order_by('-id')
 
         # Prepare the response data without serializers
         data = []
@@ -614,7 +614,7 @@ class BusinessDirectoryFilterView(APIView):
 
 
         # Apply the filters in a single query
-        queryset = BusinessDirectory.objects.filter(filters)
+        queryset = BusinessDirectory.objects.filter(filters).order_by('-id')
 
         # Prepare the response data
         data = []
@@ -658,7 +658,7 @@ class CreateJobComment(APIView):
 
 class RetrieveJobComments(APIView):
     def get(self, request, job_id):
-        comments = JobComment.objects.filter(job_id=job_id)
+        comments = JobComment.objects.filter(job_id=job_id).order_by('-id')
         data = [
             {
                 "comment_id": comment.id,
@@ -769,7 +769,7 @@ class MyJobApplication(APIView):
         job_post = JobPost.objects.get(id=job_post_id)
 
         # Get applications for those job posts
-        applications = Application.objects.filter(job_post=job_post)
+        applications = Application.objects.filter(job_post=job_post).order_by('-id')
 
         applications_data = []
         for application in applications:

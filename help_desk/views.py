@@ -28,7 +28,7 @@ class CreateTicketCategory(APIView):
 
 class RetrieveTicketCategory(APIView):
     def get(self, request):
-        categories = TicketCategory.objects.all()
+        categories = TicketCategory.objects.all().order_by('-id')
         data = [
             {
                 "id": category.id,
@@ -134,7 +134,7 @@ class MyTicket(APIView):
         alumni = Alumni.objects.get(member=member)
 
         # Get tickets associated with the Alumni
-        tickets = Ticket.objects.filter(alumni=alumni)
+        tickets = Ticket.objects.filter(alumni=alumni).order_by('-id')
         
         # Manually create a list of ticket data
         tickets_data = []

@@ -201,14 +201,14 @@ class CreateUser(APIView):
 class Users(APIView):
     permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
     def get(self, request):
-        users = User.objects.all()
+        users = User.objects.all().order_by('-id')
         serializer = UserSerializer(users, many=True)
         return Response(serializer.data)
 
 class Groups(APIView):
     permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
     def get(self, request):
-        groups = Group.objects.all()
+        groups = Group.objects.all().order_by('-id')
         serializer = GroupSerializer(groups, many=True)
         return Response(serializer.data)
 
@@ -283,7 +283,7 @@ class DeactivateUser(APIView):
 # active data for dropdown
 class ActiveDepartment(APIView):
     def get(self, request):
-        departments = Department.objects.filter(is_active=True)
+        departments = Department.objects.filter(is_active=True).order_by('-id')
         data = [
             {
                 "department_id": department.id,
@@ -297,7 +297,7 @@ class ActiveDepartment(APIView):
 
 class ActiveCourse(APIView):
     def get(self, request):
-        courses = Course.objects.filter(is_active=True)
+        courses = Course.objects.filter(is_active=True).order_by('-id')
         data = [
             {
                 "course_id": course.id,
@@ -325,7 +325,7 @@ class CreateSalutation(APIView):
 
 class RetrieveSalutation(APIView):
     def get(self, request):
-        salutations = Salutation.objects.all()
+        salutations = Salutation.objects.all().order_by('-id')
         data = [
             {
                 "salutation_id": salutation.id,
@@ -377,7 +377,7 @@ class CreateBatch(APIView):
 
 class RetrieveBatch(APIView):
     def get(self, request):
-        batches = Batch.objects.all()
+        batches = Batch.objects.all().order_by('-id')
         data = [
             {
                 "batch_id": batch.id,
@@ -433,7 +433,7 @@ class RetrieveDepartment(APIView):
     permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
 
     def get(self, request):
-        departments = Department.objects.all()
+        departments = Department.objects.all().order_by('-id')
         data = [
             {
                 "department_id": department.id,
@@ -505,7 +505,7 @@ class CreateCourse(APIView):
 
 class RetrieveCourse(APIView):
     def get(self, request):
-        courses = Course.objects.all()
+        courses = Course.objects.all().order_by('-id')
         data = [
             {
                 "course_id": course.id,
@@ -579,7 +579,7 @@ class CreateInstitution(APIView):
 
 class RetrieveInstitution(APIView):
     def get(self, request):
-        institutions = Institution.objects.all()
+        institutions = Institution.objects.all().order_by('-id')
         data = [{"id": inst.id, "title": inst.title, "description": inst.description} for inst in institutions]
         return Response(data, status=status.HTTP_200_OK)
 
@@ -626,7 +626,7 @@ class CreateSocialMedia(APIView):
 
 class RetrieveSocialMedia(APIView):
     def get(self, request):
-        social_media_entries = Social_Media.objects.all()
+        social_media_entries = Social_Media.objects.all().order_by('-id')
         data = [
             {
                 "id": sm.id,
@@ -697,7 +697,7 @@ class CreateRole(APIView):
 
 class RetrieveRoles(APIView):
     def get(self, request):
-        roles = Role.objects.all()
+        roles = Role.objects.all().order_by('-id')
         data = [{"id": role.id, "role": role.role, "description": role.description} for role in roles]
         return Response(data, status=status.HTTP_200_OK)
 
@@ -742,7 +742,7 @@ class CreateIndustry(APIView):
 
 class RetrieveIndustry(APIView):
     def get(self, request):
-        industries = Industry.objects.all()
+        industries = Industry.objects.all().order_by('-id')
         data = [{"id": ind.id, "title": ind.title, "description": ind.description, "website": ind.website} for ind in industries]
         return Response(data, status=status.HTTP_200_OK)
 
@@ -1523,7 +1523,7 @@ class CreateSkill(APIView):
 
 class RetrieveSkill(APIView):
     def get(self, request):
-        skills = Skill.objects.all()
+        skills = Skill.objects.all().order_by('-id')
         data = [
             {
                 "skill_id": skill.id,
@@ -1989,7 +1989,7 @@ class MemberListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        members = Member.objects.all()
+        members = Member.objects.all().order_by('-id')
         response_data = []
         for member in members:
             alumni_data = None

@@ -87,13 +87,21 @@ class CreateEvent(APIView):
         return Response(event_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class RetrieveEvent(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request):
         events = Event.objects.all()  # Fetch all events
         serializer = EventRetrieveSerializer(events, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+class MyRetrieveEvent(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        events = Event.objects.filter(posted_by=self.requested.user) 
+        serializer = EventRetrieveSerializer(events, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
 class UpdateEvent(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -166,10 +174,10 @@ class DeactivateEvent(APIView):
 # active Event
 
 class ActiveEvent(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     def get(self, request):
         events = Event.objects.filter(is_active=True)
-        serializer = EventRetrieveSerializer(events, many=True, context={'request': request})
+        serializer = EventActiveRetrieveSerializer(events, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 # retrieve question

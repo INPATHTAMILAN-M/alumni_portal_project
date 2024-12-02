@@ -11,6 +11,7 @@ urlpatterns = [
     # Manage Event 
     path('create_event/', CreateEvent.as_view(), name='create_event'),
     path('retrieve_event/', RetrieveEvent.as_view(), name='retrieve_event'),
+    path('my_event/', MyRetrieveEvent.as_view(), name='my_event'),
     path('update_event/<int:event_id>/', UpdateEvent.as_view(), name='update_event'),
     path('inactive_event/<int:event_id>/', DeactivateEvent.as_view(), name='inactive_event'),
     path('active_event/', ActiveEvent.as_view(), name='active_event'),

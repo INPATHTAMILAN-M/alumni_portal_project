@@ -5,7 +5,7 @@ from .models import *
 class QuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Question
-        fields = ['id', 'question', 'help_text', 'options', 'is_faq']
+        fields = ['id', 'question', 'help_text', 'options', 'is_faq','is_recommended']
         
 class EventQuestionSerializer(serializers.ModelSerializer):
     question = QuestionSerializer()  # Include the full question data

@@ -15,7 +15,15 @@ urlpatterns = [
     path('update_event/<int:event_id>/', UpdateEvent.as_view(), name='update_event'),
     path('inactive_event/<int:event_id>/', DeactivateEvent.as_view(), name='inactive_event'),
     path('active_event/', ActiveEvent.as_view(), name='active_event'),
-    # recommended Question
+    # manage question
+    path('question_list/', QuestionListView.as_view(), name='question_list'), 
+    path('question_create/', QuestionCreateView.as_view(), name='question_create'),  
+    path('question_detail/<int:question_id>/', QuestionRetrieveView.as_view(), name='question_detail'),  
+    path('question_update/<int:question_id>/', QuestionUpdateView.as_view(), name='question_update'),  
+    path('question_delete/<int:question_id>/', DeleteQuestion.as_view(), name='question_delete'),  
+    path('make_recommended_question/<int:question_id>/', MakeRecommendedQuestion.as_view(), name='make_recommended_question'),  
+    
+    # retrieve recommended Question
     path('recommended_questions/', RecommendedQuestions.as_view(), name='recommended_questions'),
     # Event by category
     path('event_by_category/', EventByCategory.as_view(), name='event_by_category'),

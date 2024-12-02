@@ -1,0 +1,146 @@
+class CreateEvent(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        # Copy request data excluding file fields
+        event_data = {key: value for key, value in request.data.items() if key != 'event_wallpaper'}
+        event_data['posted_by'] = request.user.id  # Attach the logged-in user to the event data
+        
+        # Prepare the event wallpaper separately from request.FILES
+        event_wallpaper = request.FILES.get('event_wallpaper')
+        
+        # Serialize the event data (excluding the file)
+        event_serializer = EventSerializer(data=event_data)
+        
+        if event_serializer.is_valid():
+            # Save the event instance first
+            event = event_serializer.save()
+
+            # Handle file upload if present
+            if event_wallpaper:
+                event.event_wallpaper = event_wallpaper
+                event.save()  # Save the event with the wallpaper
+
+            # Handle the event questions if they are in form data
+            # This assumes event_question is a key for multiple individual questions
+            event_questions = request.data.getlist('event_question')  # Use getlist to handle multiple form fields
+            for question_data in event_questions:
+                try:
+                    question_obj = json.loads(question_data)  # Assuming each question is passed as JSON string
+                    question = None
+                    if 'question' in question_obj:
+                        question = Question.objects.get(question=question_obj['question'])
+                    if not question:
+                        question = Question.objects.create(
+                            question=question_obj.get('question', ''),
+                            help_text=question_obj.get('help_text', ''),
+                            options=question_obj.get('options', ''),
+                            is_faq=question_obj.get('is_faq', False)
+                        )
+                    EventQuestion.objects.create(event=event, question=question)
+
+                except Exception as e:
+                    return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+            return Response({
+                "message": "Event created successfully",
+            }, status=status.HTTP_201_CREATED)
+
+        return Response(event_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+responce 1
+class CreateEvent(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        # Copy request data excluding file fields
+        event_data = {key: value for key, value in request.data.items() if key != 'event_wallpaper'}
+        event_data['posted_by'] = request.user.id  # Attach the logged-in user to the event data
+        
+        # Prepare the event wallpaper separately from request.FILES
+        event_wallpaper = request.FILES.get('event_wallpaper')
+        
+        # Serialize the event data (excluding the file)
+        event_serializer = EventSerializer(data=event_data)
+        
+        if event_serializer.is_valid():
+            # Save the event instance first
+            event = event_serializer.save()
+
+            # Handle file upload if present
+            if event_wallpaper:
+                event.event_wallpaper = event_wallpaper
+                event.save()  # Save the event with the wallpaper
+
+            # Process any event questions (if any)
+            event_questions = request.data.get('event_question', [])
+            for question_data in event_questions:
+                question = None
+                if 'question' in question_data:
+                    try:
+                        question = Question.objects.get(question=question_data['question'])
+                    except ObjectDoesNotExist:
+                        pass
+
+                if not question:
+                    question = Question.objects.create(
+                        question=question_data.get('question', ''),
+                        help_text=question_data.get('help_text', ''),
+                        options=question_data.get('option', ''),
+                        is_faq=question_data.get('is_faq', False)
+                    )
+
+                EventQuestion.objects.create(event=event, question=question)
+
+            return Response({
+                "message": "Event created successfully",
+            }, status=status.HTTP_201_CREATED)
+
+        return Response(event_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+responce 2
+class CreateEvent(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        event_data = request.data.copy()
+        event_data['posted_by'] = request.user.id  
+        
+        event_serializer = EventSerializer(data=event_data)
+        
+        if event_serializer.is_valid():
+            event = event_serializer.save()  
+
+            event_questions = request.data.get('event_question', [])
+
+            for question_data in event_questions:
+                question = None
+                if 'question' in question_data:
+                    try:
+                        question = Question.objects.get(question=question_data['question'])
+                    except ObjectDoesNotExist:
+                        pass
+                
+                if not question:
+                    question = Question.objects.create(
+                        question=question_data.get('question', ''),
+                        help_text=question_data.get('help_text', ''),
+                        options=question_data.get('option', ''),
+                        is_faq=question_data.get('is_faq', False)
+                    )
+                
+                EventQuestion.objects.create(event=event, question=question)
+
+            return Response({
+                "message": "Event created successfully",
+            }, status=status.HTTP_201_CREATED)
+        
+        return Response(event_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+responce 3
+

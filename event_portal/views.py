@@ -11,6 +11,8 @@ from django.core.exceptions import ObjectDoesNotExist
 import openpyxl
 from django.http import HttpResponse
 from django.utils import timezone
+from rest_framework.parsers import MultiPartParser, FormParser
+import json
 
 # manage category
 class CreateEventCategory(APIView):
@@ -50,40 +52,53 @@ class UpdateEventCategory(APIView):
 
 class CreateEvent(APIView):
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
+        # Copy incoming request data
         event_data = request.data.copy()
-        event_data['posted_by'] = request.user.id  
-        
+        event_data['posted_by'] = request.user.id
+
+        # Serialize the event data
         event_serializer = EventSerializer(data=event_data)
-        
+
         if event_serializer.is_valid():
-            event = event_serializer.save()  
+            # Save the event instance
+            event = event_serializer.save()
 
-            event_questions = request.data.get('event_question', [])
+            # Get event_questions and parse it as JSON
+            event_questions = request.data.get('event_question', '[]')  # Default to empty list if not provided
+            try:
+                event_questions = json.loads(event_questions)
+            except json.JSONDecodeError:
+                return Response({"error": "Invalid JSON format in event_question."}, status=status.HTTP_400_BAD_REQUEST)
 
+            # Process each question in event_questions
             for question_data in event_questions:
                 question = None
                 if 'question' in question_data:
                     try:
+                        # Check if the question already exists
                         question = Question.objects.get(question=question_data['question'])
                     except ObjectDoesNotExist:
                         pass
-                
+
                 if not question:
+                    # Create new question if not found
                     question = Question.objects.create(
                         question=question_data.get('question', ''),
                         help_text=question_data.get('help_text', ''),
                         options=question_data.get('option', ''),
                         is_faq=question_data.get('is_faq', False)
                     )
-                
+
+                # Create EventQuestion linking event and question
                 EventQuestion.objects.create(event=event, question=question)
 
             return Response({
                 "message": "Event created successfully",
             }, status=status.HTTP_201_CREATED)
-        
+
         return Response(event_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class RetrieveEvent(APIView):

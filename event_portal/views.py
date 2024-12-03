@@ -1,4 +1,6 @@
 import datetime
+from email.message import EmailMessage
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -88,7 +90,7 @@ class CreateEvent(APIView):
                     question = Question.objects.create(
                         question=question_data.get('question', ''),
                         help_text=question_data.get('help_text', ''),
-                        options=question_data.get('option', ''),
+                        options=question_data.get('options', ''),
                         is_faq=question_data.get('is_faq', False)
                     )
 
@@ -141,10 +143,11 @@ class UpdateEvent(APIView):
             event_serializer.save()
 
             event_questions = request.data.get('event_question', [])
-
+            related_question_ids = list(EventQuestion.objects.filter(event=event).values_list('question_id', flat=True))
+            print(related_question_ids)
             EventQuestion.objects.filter(event=event).delete()
-            related_question_ids = EventQuestion.objects.filter(event=event).values_list('question_id', flat=True)
             Question.objects.filter(id__in=related_question_ids, is_recommended=False).delete()
+
 
             for question_data in event_questions:
                 question = None
@@ -157,7 +160,7 @@ class UpdateEvent(APIView):
                             help_text=question_data.get('help_text', ''),
                             options=question_data.get('options', ''),
                             is_faq=question_data.get('is_faq', False),
-                            is_recommended=question_data.get('is_recommended', False)
+                           
                         )
                 EventQuestion.objects.create(event=event, question=question)
 
@@ -325,7 +328,31 @@ class EventQuestionDelete(APIView):
 # register event
 class RegisterEvent(APIView):
     permission_classes = [IsAuthenticated]  # Ensure that the user is authenticated
-    
+    def get(self, request, event_id):
+        # Get the event object
+        event = get_object_or_404(Event, id=event_id)
+
+        # Get all EventQuestion objects related to the event
+        event_questions = EventQuestion.objects.filter(event=event)
+        
+        # Format the questions and their details
+        questions_data = []
+        for event_question in event_questions:
+            question = event_question.question  # Access the Question object related to the EventQuestion
+            
+            # Split the options into a list (if options exist and are comma-separated)
+            options_list = question.options.split(',') if question.options else []
+            
+            question_data = {
+                "question": question.question,
+                "help_text": question.help_text,
+                "options": options_list,
+                "is_faq": question.is_faq
+            }
+            questions_data.append(question_data)
+
+        return Response(questions_data, status=status.HTTP_200_OK)
+        
     def post(self, request, event_id):
         event = get_object_or_404(Event, id=event_id)
         
@@ -360,13 +387,10 @@ class RegisterEvent(APIView):
         }, status=status.HTTP_201_CREATED)
 
 class RetrieveRegisteredEvent(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     
     def get(self, request, event_id):
-        # Retrieve the specific event
         event = get_object_or_404(Event, id=event_id)
-        
-        # Fetch all registrations for the event
         registrations = EventRegistration.objects.filter(event=event)
         
         if not registrations.exists():
@@ -374,23 +398,21 @@ class RetrieveRegisteredEvent(APIView):
         
         all_registered_users = []
         
-        # For each registration, get the user and their responses
         for registration in registrations:
             user_data = {
                 "member_id": registration.user.member.id if registration.user.member else None,  
+                "profile_picture": registration.user.member.profile_picture if registration.user.member.profile_picture else None,                
+                "full_name": registration.user.get_full_name(),
                 "email": registration.user.email,
                 "registration_date": registration.applied_on,
                 "responses": []
             }
-
-            # Fetch all responses for this event registration
             responses = RegistrationResponse.objects.filter(registered_event=registration)
             for response in responses:
                 user_data["responses"].append({
                     "question": response.question.question,
                     "response": response.response
                 })
-            
             all_registered_users.append(user_data)
         
         return Response({
@@ -399,6 +421,67 @@ class RetrieveRegisteredEvent(APIView):
             "registered_users": all_registered_users
         }, status=status.HTTP_200_OK)
 
+
+class EmailAttendees(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, event_id):
+        event = get_object_or_404(Event, id=event_id)
+        registrations = EventRegistration.objects.filter(event=event)
+        
+        if not registrations.exists():
+            return Response({"error": "No registrations found for this event."}, status=status.HTTP_404_NOT_FOUND)
+        
+        all_registered_users = []
+        
+        for registration in registrations:
+            user_data = {              
+                "full_name": registration.user.get_full_name(),
+                "email": registration.user.email,
+            }
+            
+            all_registered_users.append(user_data)
+        
+        return Response({
+            "event_id": event.id,
+            "event_title": event.title,
+            "venue":event.venue,
+            "date":event.start_date,
+            "time":event.start_time,
+            "registered_users": all_registered_users
+        }, status=status.HTTP_200_OK)
+        
+    def post(self, request, event_id):
+        event = get_object_or_404(Event, id=event_id)
+        registrations = EventRegistration.objects.filter(event=event)
+        
+        if not registrations.exists():
+            return Response({"error": "No registrations found for this event."}, status=status.HTTP_404_NOT_FOUND)
+
+        subject = request.GET.get('subject')
+        message = request.GET.get('message')
+        file = request.FILES.get('file') 
+        
+        if not subject or not message:
+            return Response({"error": "Subject and message are required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not file:
+            return Response({"error": "File is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        for registration in registrations:
+            email = EmailMessage(
+                subject,  
+                message,  
+                settings.DEFAULT_FROM_EMAIL,  
+                [registration.user.email],  
+            )
+            email.attach(file.name, file.read(), file.content_type)  
+            email.send(fail_silently=False)
+        
+        return Response({
+            "message": "Emails with attachments sent successfully to all registered users."
+        }, status=status.HTTP_200_OK)
+        
 # export event data
 class ExportEvent(APIView):
     """

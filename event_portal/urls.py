@@ -15,6 +15,7 @@ urlpatterns = [
     path('update_event/<int:event_id>/', UpdateEvent.as_view(), name='update_event'),
     path('inactive_event/<int:event_id>/', DeactivateEvent.as_view(), name='inactive_event'),
     path('active_event/', ActiveEvent.as_view(), name='active_event'),
+    
     # manage question
     path('question_list/', QuestionListView.as_view(), name='question_list'), 
     path('question_create/', QuestionCreateView.as_view(), name='question_create'),  
@@ -25,6 +26,7 @@ urlpatterns = [
     
     # retrieve recommended Question
     path('recommended_questions/', RecommendedQuestions.as_view(), name='recommended_questions'),
+    
     # Event by category
     path('event_by_category/', EventByCategory.as_view(), name='event_by_category'),
     path('past_event_by_category/', PastEventByCategory.as_view(), name='past_event_by_category'),
@@ -32,6 +34,9 @@ urlpatterns = [
     # register event
     path('register_event/<int:event_id>/', RegisterEvent.as_view(), name='register_event'),
     path('registered_details/<int:event_id>/', RetrieveRegisteredEvent.as_view(), name='registered_details'),
+    
+    # Email attendees
+    path('email_attendees/<int:event_id>/', EmailAttendees.as_view(), name='email_attendees'),
     
     # Export Event
     path('export_event/<int:event_id>/', ExportEvent.as_view(), name='export_event'),

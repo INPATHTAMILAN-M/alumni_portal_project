@@ -143,11 +143,8 @@ class UpdateEvent(APIView):
             event_questions = request.data.get('event_question', [])
 
             EventQuestion.objects.filter(event=event).delete()
-
-            EventQuestion.objects.filter(
-                event=event, 
-                question__is_recommended=False
-            ).delete()
+            related_question_ids = EventQuestion.objects.filter(event=event).values_list('question_id', flat=True)
+            Question.objects.filter(id__in=related_question_ids, is_recommended=False).delete()
 
             for question_data in event_questions:
                 question = None
@@ -162,8 +159,8 @@ class UpdateEvent(APIView):
                             is_faq=question_data.get('is_faq', False),
                             is_recommended=question_data.get('is_recommended', False)
                         )
-
                 EventQuestion.objects.create(event=event, question=question)
+
 
             return Response({
                 "message": "Event updated successfully",

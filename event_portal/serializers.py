@@ -62,7 +62,7 @@ class EventRetrieveSerializer(serializers.ModelSerializer):
             
             question = event_question.question  # Get the related Question
             question_data = {
-                'event_question_id':event_question.id,
+                
                 'id': question.id,
                 'question': question.question,
                 'options': question.options,

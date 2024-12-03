@@ -15,7 +15,7 @@ class EventQuestionSerializer(serializers.ModelSerializer):
         fields = ['question']
         
 class EventSerializer(serializers.ModelSerializer):
-    event_wallpaper = serializers.SerializerMethodField()
+    event_wallpaper = serializers.ImageField(required=False)
     event_question = EventQuestionSerializer(many=True, read_only=True)  
 
     class Meta:
@@ -24,14 +24,15 @@ class EventSerializer(serializers.ModelSerializer):
                   'need_registration', 'registration_close_date', 'description', 'event_wallpaper', 'instructions',
                   'posted_by', 'event_question']
         
-    def get_event_wallpaper(self, obj):
-        request = self.context.get('request')
-        if obj.event_wallpaper:
-            return request.build_absolute_uri(obj.event_wallpaper.url)
-        return None  
+    # def get_event_wallpaper(self, obj):
+    #     request = self.context.get('request')
+    #     if obj.event_wallpaper:
+    #         return request.build_absolute_uri(obj.event_wallpaper.url)
+    #     return None  
 
 class EventRetrieveSerializer(serializers.ModelSerializer):
     category = serializers.CharField(source='category.title', read_only=True)
+    category_id = serializers.CharField(source='category.id', read_only=True)
     posted_by = serializers.CharField(source='posted_by.get_full_name', read_only=True)
     event_wallpaper = serializers.SerializerMethodField()
     event_question = serializers.SerializerMethodField()  # Custom method for serializing questions
@@ -39,7 +40,7 @@ class EventRetrieveSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = [
-            'id','title', 'category', 'start_date', 'start_time', 'venue', 'address', 'link', 'is_public',
+            'id','title','category_id', 'category', 'start_date', 'start_time', 'venue', 'address', 'link', 'is_public',
             'need_registration', 'registration_close_date', 'description', 'event_wallpaper', 'instructions',
             'posted_by', 'event_question','is_active'
         ]

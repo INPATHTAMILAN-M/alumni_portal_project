@@ -1,11 +1,13 @@
 import datetime
-from email.message import EmailMessage
+from django.core.mail import EmailMessage
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+
+from account.models import Member
 from .models import *
 from account.permissions import *
 from .serializers import *
@@ -15,7 +17,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework.parsers import MultiPartParser, FormParser
 import json
-
+from django.core.mail import send_mail
 # manage category
 class CreateEventCategory(APIView):
     # permission_classes = [IsAuthenticated, IsAlumniManagerOrAdministrator]
@@ -120,7 +122,7 @@ class MyRetrieveEvent(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 class UpdateEvent(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request,event_id):
         events = Event.objects.get(id=event_id)  # Fetch all events
@@ -128,23 +130,21 @@ class UpdateEvent(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     def post(self, request, event_id):
-        try:
-            event = Event.objects.get(id=event_id, posted_by=request.user)
-        except Event.DoesNotExist:
-            return Response({"error": "Event not found or you do not have permission to edit it."},
-                            status=status.HTTP_404_NOT_FOUND)
 
+        event = Event.objects.get(id=event_id, posted_by=request.user)
+       
         event_data = request.data.copy()
         event_data['posted_by'] = request.user.id  
-
-        event_serializer = EventSerializer(event, data=event_data, partial=True)
+    
+        event_serializer = EventSerializer(data=event_data, partial=True)
 
         if event_serializer.is_valid():
+            event_serializer.is_valid(raise_exception=True) 
+            print(event_serializer.validated_data)
             event_serializer.save()
 
             event_questions = request.data.get('event_question', [])
             related_question_ids = list(EventQuestion.objects.filter(event=event).values_list('question_id', flat=True))
-            print(related_question_ids)
             EventQuestion.objects.filter(event=event).delete()
             Question.objects.filter(id__in=related_question_ids, is_recommended=False).delete()
 
@@ -170,7 +170,7 @@ class UpdateEvent(APIView):
             }, status=status.HTTP_200_OK)
 
         return Response(event_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    
 # deactivate event
 class DeactivateEvent(APIView):
     permission_classes = [IsAuthenticated]
@@ -458,30 +458,97 @@ class EmailAttendees(APIView):
         if not registrations.exists():
             return Response({"error": "No registrations found for this event."}, status=status.HTTP_404_NOT_FOUND)
 
-        subject = request.GET.get('subject')
-        message = request.GET.get('message')
-        file = request.FILES.get('file') 
+        subject = request.data.get('subject')
+        message = request.data.get('message')
+        file = request.FILES.get('file', None)
+        
+        recipient_emails = [registration.user.email for registration in registrations]
         
         if not subject or not message:
             return Response({"error": "Subject and message are required."}, status=status.HTTP_400_BAD_REQUEST)
         
-        if not file:
-            return Response({"error": "File is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        for registration in registrations:
-            email = EmailMessage(
-                subject,  
-                message,  
-                settings.DEFAULT_FROM_EMAIL,  
-                [registration.user.email],  
-            )
-            email.attach(file.name, file.read(), file.content_type)  
-            email.send(fail_silently=False)
-        
-        return Response({
-            "message": "Emails with attachments sent successfully to all registered users."
-        }, status=status.HTTP_200_OK)
-        
+        email = EmailMessage(
+            subject=subject, 
+            body=message,     
+            from_email=settings.DEFAULT_FROM_EMAIL,  
+            to=recipient_emails,  
+        )
+
+
+        if file:
+            email.attach(file.name, file.read(), file.content_type)
+
+        try:
+            email.send()
+            return Response({"status": "Email sent successfully!"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"status": "Failed to send email", "error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class EmailSelectedMembers(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        # Retrieve member_ids from form-data (as a string)
+        member_ids_str = request.data.get('member_ids', '')
+
+        # If member_ids is not empty, process it
+        if member_ids_str:
+            try:
+                # Split the string into a list and convert to integers
+                member_ids = [int(id.strip()) for id in member_ids_str.split(',')]
+            except ValueError:
+                return Response({"error": "Invalid member IDs format. Please provide a list of integers."}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({"error": "No member IDs provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Fetch the members based on the provided IDs
+        members = Member.objects.filter(id__in=member_ids)
+
+        if not members.exists():
+            return Response({"error": "No members found with the provided IDs."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Get the subject and message from the request
+        subject = request.data.get('subject')
+        message = request.data.get('message')
+        file = request.FILES.get('file', None)
+
+        # Ensure subject and message are provided
+        if not subject or not message:
+            return Response({"error": "Subject and message are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        responses = []
+
+        # Loop through the members and send email to each one
+        for member in members:
+            recipient_email = member.email if member else None
+
+            if recipient_email:
+                # Create the email message
+                email = EmailMessage(
+                    subject=subject,
+                    body=message,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    to=[recipient_email],
+                )
+
+                # Attach file if provided
+                if file:
+                    email.attach(file.name, file.read(), file.content_type)
+
+                try:
+                    # Send email
+                    email.send()
+                    responses.append({"status": f"Email sent successfully to {recipient_email}."})
+                except Exception as e:
+                    responses.append({"status": f"Failed to send email to {recipient_email}", "error": str(e)})
+            else:
+                responses.append({"status": f"No email found for member {member.id}."})
+
+        return Response(responses, status=status.HTTP_200_OK)
+
+
 # export event data
 class ExportEvent(APIView):
     """
@@ -489,15 +556,12 @@ class ExportEvent(APIView):
     """
     
     def get(self, request, event_id):
-        # Fetch the event object, or return a 404 error if it doesn't exist
         event = get_object_or_404(Event, id=event_id)
 
-        # Create a new workbook and set the sheet name
         workbook = openpyxl.Workbook()
         sheet = workbook.active
         sheet.title = f"Event {event.title}"
 
-        # Define headers for event details and questions
         headers = [
             'Event Title', 'Category', 'Start Date', 'Start Time', 'Venue',
             'Address', 'Link', 'Is Public', 'Need Registration', 'Registration Close Date',
@@ -505,56 +569,48 @@ class ExportEvent(APIView):
             'Question', 'Options', 'Help Text', 'Is FAQ', 'Username', 'Applied On', 'Responses'
         ]
         sheet.append(headers)
-
-        # Fetch all registrations for this event
         event_registrations = EventRegistration.objects.filter(event=event)
         
         for registration in event_registrations:
-            # Fetch the responses for each registration
             responses = RegistrationResponse.objects.filter(registered_event=registration)
-
-            # Collect the response data for each registration
             response_data = {response.question.question: response.response for response in responses}
-            
-            # Loop through the questions for the event
             event_questions = EventQuestion.objects.filter(event=event)
             
             for event_question in event_questions:
-                question = event_question.question  # Access the Question object via EventQuestion
-                options = question.options  # Access 'options' from the related Question model
+                question = event_question.question 
+                options = question.options
                 help_text = question.help_text
                 is_faq = question.is_faq
                 question_response = response_data.get(question.question, 'No Response')
 
-                # Create a row with the event details and the question/response details
                 row = [
-                    event.title,  # Event Title
-                    event.category.title,  # Category
-                    event.start_date,  # Start Date
-                    event.start_time,  # Start Time
-                    event.venue,  # Venue
-                    event.address,  # Address
-                    event.link,  # Link
-                    event.is_public,  # Is Public
-                    event.need_registration,  # Need Registration
-                    event.registration_close_date,  # Registration Close Date
-                    event.description,  # Description
-                    event.event_wallpaper.url if event.event_wallpaper else 'No Wallpaper',  # Event Wallpaper
-                    event.instructions,  # Instructions
-                    event.posted_by.get_full_name(),  # Posted By
-                    question.question,  # Question
-                    options,  # Options (from Question model)
-                    help_text,  # Help Text (from Question model)
-                    is_faq,  # Is FAQ (from Question model)
-                    registration.user.username,  # Username
-                    registration.applied_on,  # Applied On
-                    f"{question.question}: {question_response}"  # Responses
+                    event.title, 
+                    event.category.title,
+                    event.start_date, 
+                    event.start_time, 
+                    event.venue, 
+                    event.address,  
+                    event.link,  
+                    event.is_public,  
+                    event.need_registration, 
+                    event.registration_close_date,
+                    event.description,  
+                    event.event_wallpaper.url if event.event_wallpaper else 'No Wallpaper', 
+                    event.instructions,  
+                    event.posted_by.get_full_name(),
+                    question.question, 
+                    options,  
+                    help_text,
+                    is_faq, 
+                    registration.user.username, 
+                    registration.applied_on, 
+                    f"{question.question}: {question_response}" 
                 ]
                 sheet.append(row)
 
-        # Create an HTTP response with the Excel file
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         response['Content-Disposition'] = f'attachment; filename=event_{event.id}_data.xlsx'
         workbook.save(response)
         
         return response
+    

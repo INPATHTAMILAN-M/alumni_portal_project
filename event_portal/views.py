@@ -335,25 +335,28 @@ class RegisterEvent(APIView):
         # Get all EventQuestion objects related to the event
         event_questions = EventQuestion.objects.filter(event=event)
         
-        # Format the questions and their details
+          # Format the questions and their details
         questions_data = []
         for event_question in event_questions:
             question = event_question.question  # Access the Question object related to the EventQuestion
             
             # Split the options into a list (if options exist and are comma-separated)
             options_list = question.options.split(',') if question.options else []
+
+            # Convert options into a list of dictionaries with 'name' as the key
+            options_dict_list = [{"name": option.strip()} for option in options_list]
             
             question_data = {
-                "id":question.id,
+                "id": question.id,
                 "question": question.question,
                 "help_text": question.help_text,
-                "options": options_list,
+                "options": options_dict_list,  # Use the new structure
                 "is_faq": question.is_faq
             }
             questions_data.append(question_data)
 
         return Response(questions_data, status=status.HTTP_200_OK)
-        
+
     def post(self, request, event_id):
         event = get_object_or_404(Event, id=event_id)
         

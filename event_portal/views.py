@@ -327,7 +327,7 @@ class EventQuestionDelete(APIView):
         
 # register event
 class RegisterEvent(APIView):
-    permission_classes = [IsAuthenticated]  # Ensure that the user is authenticated
+    # permission_classes = [IsAuthenticated]  # Ensure that the user is authenticated
     def get(self, request, event_id):
         # Get the event object
         event = get_object_or_404(Event, id=event_id)
@@ -344,6 +344,7 @@ class RegisterEvent(APIView):
             options_list = question.options.split(',') if question.options else []
             
             question_data = {
+                "id":question.id,
                 "question": question.question,
                 "help_text": question.help_text,
                 "options": options_list,

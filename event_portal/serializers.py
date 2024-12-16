@@ -8,7 +8,7 @@ class QuestionSerializer(serializers.ModelSerializer):
         fields = ['id', 'question', 'help_text', 'options', 'is_faq','is_recommended']
         
 class EventQuestionSerializer(serializers.ModelSerializer):
-    question = QuestionSerializer()  # Include the full question data
+    question = QuestionSerializer()  
 
     class Meta:
         model = EventQuestion
@@ -35,7 +35,7 @@ class EventRetrieveSerializer(serializers.ModelSerializer):
     category_id = serializers.CharField(source='category.id', read_only=True)
     posted_by = serializers.CharField(source='posted_by.get_full_name', read_only=True)
     event_wallpaper = serializers.SerializerMethodField()
-    event_question = serializers.SerializerMethodField()  # Custom method for serializing questions
+    event_question = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
@@ -55,12 +55,12 @@ class EventRetrieveSerializer(serializers.ModelSerializer):
         """
         Custom method to serialize related EventQuestion and Question data.
         """
-        event_questions = EventQuestion.objects.filter(event=obj)  # Get related EventQuestions for this event
+        event_questions = EventQuestion.objects.filter(event=obj)
         event_question_data = []
 
         for event_question in event_questions:
             
-            question = event_question.question  # Get the related Question
+            question = event_question.question
             question_data = {
                 
                 'id': question.id,
@@ -77,7 +77,7 @@ class EventActiveRetrieveSerializer(serializers.ModelSerializer):
     category = serializers.CharField(source='category.title', read_only=True)
     posted_by = serializers.CharField(source='posted_by.get_full_name', read_only=True)
     event_wallpaper = serializers.SerializerMethodField()
-    event_question = serializers.SerializerMethodField()  # Custom method for serializing questions
+    event_question = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
@@ -97,22 +97,74 @@ class EventActiveRetrieveSerializer(serializers.ModelSerializer):
         """
         Custom method to serialize related EventQuestion and Question data.
         """
-        event_questions = EventQuestion.objects.filter(event=obj)  # Get related EventQuestions for this event
+        event_questions = EventQuestion.objects.filter(event=obj)
         event_question_data = []
 
         for event_question in event_questions:
-            question = event_question.question  # Get the related Question
-            options_list = question.options.split(',') if question.options else []  # Split options by comma
-            # Creating a list of dictionaries from options
-            options_data = [{"option": option.strip()} for option in options_list]  # Create list of dictionaries
+            question = event_question.question
+            options_list = question.options.split(',') if question.options else []
+            options_data = [{"option": option.strip()} for option in options_list]
 
             question_data = {
                 'id': question.id,
                 'question': question.question,
-                'options': options_data,  # Use the formatted options
+                'options': options_data,
                 'help_text': question.help_text,
                 'is_faq': question.is_faq
             }
             event_question_data.append(question_data)
 
         return event_question_data
+
+class EventExportQuestionSerializer(serializers.ModelSerializer):
+    question = QuestionSerializer()  # Nesting the QuestionSerializer
+
+    class Meta:
+        model = EventQuestion
+        fields = ['id', 'event', 'question']
+
+class EventRegistrationSerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField()  # Assuming 'user' is a ForeignKey to the User model
+    event = serializers.StringRelatedField()  # You can also use EventSerializer if you need more fields
+
+    class Meta:
+        model = EventRegistration
+        fields = ['id', 'event', 'user', 'applied_on']
+
+class RegistrationResponseSerializer(serializers.ModelSerializer):
+    question = QuestionSerializer()  # Nesting the QuestionSerializer
+    # registered_event = EventRegistrationSerializer()  # Nesting the EventRegistrationSerializer
+
+    class Meta:
+        model = RegistrationResponse
+        fields = ['id', 'question', 'response']
+
+class EventCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventCategory
+        fields = ['id', 'title']
+            
+class EventExportSerializer(serializers.ModelSerializer):
+    category = EventCategorySerializer()  # Nested EventCategorySerializer
+    event_questions = EventExportQuestionSerializer(many=True, source='eventquestion_set')  # Correct reverse relation
+    registrations = EventRegistrationSerializer(many=True, source='eventregistration_set')  # Correct reverse relation
+
+    # SerializerMethodField to get registration responses manually
+    registration_responses = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Event
+        fields = [
+            'id', 'title', 'category', 'start_date', 'start_time', 'venue', 'address', 'link',
+            'is_public', 'need_registration', 'registration_close_date', 'description',
+            'event_wallpaper', 'instructions', 'posted_on', 'posted_by', 'is_active',
+            'event_questions', 'registrations', 'registration_responses'
+        ]
+
+    def get_registration_responses(self, obj):
+        # Get all registration responses related to this event
+        responses = []
+        for registration in obj.eventregistration_set.all():
+            # For each event registration, get the related registration responses
+            responses.extend(registration.registrationresponse_set.all())
+        return RegistrationResponseSerializer(responses, many=True).data

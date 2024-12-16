@@ -555,66 +555,11 @@ class EmailSelectedMembers(APIView):
 
 # export event data
 class ExportEvent(APIView):
-    """
-    API view to export event data including event details, questions, registrations, and responses.
-    """
-    
     def get(self, request, event_id):
-        event = get_object_or_404(Event, id=event_id)
-
-        workbook = openpyxl.Workbook()
-        sheet = workbook.active
-        sheet.title = f"Event {event.title}"
-
-        headers = [
-            'Event Title', 'Category', 'Start Date', 'Start Time', 'Venue',
-            'Address', 'Link', 'Is Public', 'Need Registration', 'Registration Close Date',
-            'Description', 'Event Wallpaper', 'Instructions', 'Posted By',
-            'Question', 'Options', 'Help Text', 'Is FAQ', 'Username', 'Applied On', 'Responses'
-        ]
-        sheet.append(headers)
-        event_registrations = EventRegistration.objects.filter(event=event)
+        try:
+            event = Event.objects.get(id=event_id)
+        except Event.DoesNotExist:
+            return Response({"error": "Event not found."}, status=status.HTTP_404_NOT_FOUND)
         
-        for registration in event_registrations:
-            responses = RegistrationResponse.objects.filter(registered_event=registration)
-            response_data = {response.question.question: response.response for response in responses}
-            event_questions = EventQuestion.objects.filter(event=event)
-            
-            for event_question in event_questions:
-                question = event_question.question 
-                options = question.options
-                help_text = question.help_text
-                is_faq = question.is_faq
-                question_response = response_data.get(question.question, 'No Response')
-
-                row = [
-                    event.title, 
-                    event.category.title,
-                    event.start_date, 
-                    event.start_time, 
-                    event.venue, 
-                    event.address,  
-                    event.link,  
-                    event.is_public,  
-                    event.need_registration, 
-                    event.registration_close_date,
-                    event.description,  
-                    event.event_wallpaper.url if event.event_wallpaper else 'No Wallpaper', 
-                    event.instructions,  
-                    event.posted_by.get_full_name(),
-                    question.question, 
-                    options,  
-                    help_text,
-                    is_faq, 
-                    registration.user.username, 
-                    registration.applied_on, 
-                    f"{question.question}: {question_response}" 
-                ]
-                sheet.append(row)
-
-        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = f'attachment; filename=event_{event.id}_data.xlsx'
-        workbook.save(response)
-        
-        return response
-    
+        serializer = EventExportSerializer(event)
+        return Response(serializer.data, status=status.HTTP_200_OK)

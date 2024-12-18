@@ -6,7 +6,7 @@ git pull || { echo "Git pull failed. Exiting."; exit 1; }
 
 # Restart the alumniportal service
 echo "Restarting the alumniportal service..."
-sudo ystemctl restart alumniportal || { echo "Failed to restart alumniportal. Exiting."; exit 1; }
+sudo systemctl restart alumniportal || { echo "Failed to restart alumniportal. Exiting."; exit 1; }
 
 # Restart the daemon service
 echo "Restarting the daemon service..."

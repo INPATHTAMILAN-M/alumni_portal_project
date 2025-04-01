@@ -51,6 +51,9 @@ INSTALLED_APPS = [
     "help_desk",
     "event_portal",
     "media_portal",
+    "django_filters",
+    "rest_framework_simplejwt",
+    
 ]
 
 MIDDLEWARE = [
@@ -121,11 +124,11 @@ CORS_ALLOW_HEADERS = [
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': config.get('DB_NAME', 'alumni_portal'),  # Default to 'editorial_manager' if not set
-        'USER': config.get('DB_USER', 'repute'),  # Default to 'root' if not set
-        'PASSWORD': config.get('DB_PASSWORD', 'PNR4erp!!!'),  # Default password if not set
-        'HOST': config.get('DB_HOST', '127.0.0.1'),  # Default to '127.0.0.1' if not set
-        'PORT': config.get('DB_PORT', '3306'),  # Default to '3306' if not set
+        'NAME': config.get('DB_NAME', 'alumni_portal'),
+        'USER': config.get('DB_USER', 'repute'),
+        'PASSWORD': config.get('DB_PASSWORD', 'PNR4erp!!!'),
+        'HOST': config.get('DB_HOST', '127.0.0.1'),
+        'PORT': config.get('DB_PORT', '3306'),
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         },

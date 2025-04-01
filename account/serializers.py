@@ -15,7 +15,21 @@ class UserSerializer(serializers.ModelSerializer):
     def get_groups(self, obj):
         return [{"id": group.id, "name": group.name} for group in obj.groups.all()]
 
-         
+
+class MemberListSerializer(serializers.ModelSerializer):
+    # salutation = serializers.StringRelatedField()
+    # batch = serializers.StringRelatedField()
+    # course = serializers.StringRelatedField()
+    # department = serializers.StringRelatedField()
+    # user = serializers.StringRelatedField()
+    
+    class Meta:
+        model = Member
+        fields = [
+            'id', 'salutation', 'gender', 'dob', 'blood_group', 'profile_picture',
+            'batch', 'course', 'department', 'about_me', 'user', 'mobile_no',
+            'email', 'file', 'register_no', 'is_approve'
+        ]
 class GroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = Group
@@ -216,3 +230,30 @@ class MainSerializer(serializers.ModelSerializer):
     
     class Meta:
         fields = ['post', 'album', 'event', 'job_post']
+        
+# Member Milestone
+
+class MemberMilestoneCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Member_Milestone
+        fields = ['id','member', 'title', 'description', 'year']
+
+class MemberMilestoneListSerializer(serializers.ModelSerializer):
+    member = MemberListSerializer()
+    class Meta:
+        model = Member_Milestone
+        fields = ['id', 'member', 'title', 'description', 'year']
+
+class MemberMilestoneUpdateSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Member_Milestone
+        fields = ['id', 'member', 'title', 'description', 'year']
+
+class MemberMilestoneRetrieveSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Member_Milestone
+        fields = ['id','member',  'title', 'description', 'year']
+    
+    
+    

@@ -3,6 +3,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets,status
+
+from account.models import ActivityPoints, UserActivity
 from .models import PostCategory
 from .serializers import *
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -83,7 +85,15 @@ class CreatePost(APIView):
             featured_image = request.data.get('featured_image'), 
             posted_by=request.user,
         )
-
+        try:
+            activity = ActivityPoints.objects.get(name="Business Directory")
+        except ActivityPoints.DoesNotExist:
+            return Response("Activity not found.")
+        UserActivity.objects.create(
+            user=request.user,
+            activity=activity,
+            details=f"{post.title} Posted"
+        )
         return Response({
             "message": "Post created successfully",
         }, status=status.HTTP_201_CREATED)
@@ -358,7 +368,15 @@ class AlbumView(APIView):
             public_view=public_view,
             created_by=request.user,
         )
-
+        try:
+            activity = ActivityPoints.objects.get(name="Business Directory")
+        except ActivityPoints.DoesNotExist:
+            return Response("Activity not found.")
+        UserActivity.objects.create(
+            user=request.user,
+            activity=activity,
+            details=f"{album.album_name} Posted"
+        )
         return Response(
             {"id": album.id, "message": "Album created successfully."},
             status=status.HTTP_201_CREATED,
@@ -591,13 +609,21 @@ class MemoryView(APIView):
         if photos:
             for photo in photos:
                 MemoryPhotos.objects.create(memory=memory, photo=photo)
-
+                
+        try:
+            activity = ActivityPoints.objects.get(name="Business Directory")
+        except ActivityPoints.DoesNotExist:
+            return Response("Activity not found.")
+        UserActivity.objects.create(
+            user=request.user,
+            activity=activity,
+            details=f"Memories created on {memory.created_on}"
+        )
         return Response(
             {"message": "Memory created successfully."},
             status=status.HTTP_201_CREATED
         )
     
-
     def get(self, request, memory_id=None):
         if memory_id:
             try:

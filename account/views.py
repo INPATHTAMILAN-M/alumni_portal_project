@@ -24,6 +24,7 @@ from django.core.mail import send_mail
 from .permissions import *
 from django.db.models import Q
 from rest_framework import status
+from django.db.models import Sum
 
 
 class Login(APIView):
@@ -68,12 +69,16 @@ class Login(APIView):
                     alum.member for alum in Alumni.objects.filter(member=member)
                 )
 
+                milestone_check = Member_Milestone.objects.filter(member=member).exists() and all(
+                    milestone.member is not None  for milestone in Member_Milestone.objects.filter(member=member)
+                )
                 # Creating a dictionary for module checks
                 modules = {
-                    'module1': profile_picture_check,  # True if profile photo exists
-                    'module2': module2_check,        # True if skills and education are valid
-                    'module3': experience_check,     # True if experience is valid
-                    'module4': alumni_check,         # True if alumni information is valid
+                    'module1': profile_picture_check,
+                    'module2': module2_check,
+                    'module3': experience_check,
+                    'module4': alumni_check,
+                    'milestone': milestone_check, 
                 }
 
             else:
@@ -127,9 +132,6 @@ class Login(APIView):
 #             }, status=status.HTTP_200_OK)
 
 #         return Response({'error': 'Invalid Credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-
-
-
 
 
 class ForgetPassword(APIView):
@@ -1582,7 +1584,12 @@ class ProfilePicture(APIView):
         # Update the profile picture
         member.profile_picture = profile_picture
         member.save()
-
+        activity = ActivityPoints.objects.get(name="Profile Picture")
+        UserActivity.objects.create(
+            user=request.user,
+            activity=activity,
+            details="Profile picture Added"
+        )
         return Response({'message': 'Profile picture updated successfully'}, status=status.HTTP_200_OK)
 
     def delete(self, request,member_id):
@@ -1647,7 +1654,15 @@ class MemberData(APIView):
         user.save()
         # Save the updated member
         member.save()
-
+        try:
+            activity = ActivityPoints.objects.get(name="Basic Details")
+        except ActivityPoints.DoesNotExist:
+            return Response("Activity not found.")
+        UserActivity.objects.create(
+            user=request.user,
+            activity=activity,
+            details="Basic Details Added"
+        )
         return Response({'message': 'Member Updated successfully'}, status=status.HTTP_200_OK)
 
 # manage member skills
@@ -1664,6 +1679,15 @@ class CreateMemberSkill(APIView):
             
             member_skill = Member_Skills(member=member, skill=skill)
             member_skill.save()
+            try:
+                activity = ActivityPoints.objects.get(name="Skill")
+            except ActivityPoints.DoesNotExist:
+                return Response("Activity not found.")
+            UserActivity.objects.create(
+                user=request.user,
+                activity=activity,
+                details=f"{skill.name} Added"
+            )
             return Response({"message": "Member skill created successfully"}, status=status.HTTP_201_CREATED)
         except (Member.DoesNotExist, Skill.DoesNotExist):
             return Response({"message": "Member or Skill not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -1721,6 +1745,18 @@ class CreateMemberEducation(APIView):
         serializer = MemberEducationSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
+            member_education = serializer
+            degree = member_education.validated_data.get('degree')
+            institute = member_education.validated_data.get('institute')
+            try:
+                activity = ActivityPoints.objects.get(name="Education")
+            except ActivityPoints.DoesNotExist:
+                return Response("Activity not found.")
+            UserActivity.objects.create(
+                user=request.user,
+                activity=activity,
+                details=f"{degree} and {institute.title} Added"
+            )
             return Response({"message": "Member education created successfully"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1784,6 +1820,18 @@ class CreateMemberExperience(APIView):
         serializer = MemberExperienceSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
+            member_experience = serializer
+            industry = member_experience.validated_data.get('degree')
+            role = member_experience.validated_data.get('institute')
+            try:
+                activity = ActivityPoints.objects.get(name="Experience")
+            except ActivityPoints.DoesNotExist:
+                return Response("Activity not found.")
+            UserActivity.objects.create(
+                user=request.user,
+                activity=activity,
+                details=f"{industry.title} and {role.role} Added"
+            )
             return Response({"message": "Member experience created successfully"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1841,6 +1889,9 @@ class DeleteMemberExperience(APIView):
             return Response({"message": "Member experience deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
         except Member_Experience.DoesNotExist:
             return Response({"message": "Member experience not found"}, status=status.HTTP_404_NOT_FOUND)
+
+# member milestone
+
 
 # contact details for alumni
 class CreateAlumni(APIView):
@@ -1917,6 +1968,7 @@ class UpdateAlumni(APIView):
         except Alumni.DoesNotExist:
             return Response({"message": "Alumni record not found"}, status=status.HTTP_404_NOT_FOUND)
         
+
 
 # profile status
 
@@ -2213,3 +2265,25 @@ class MemberDetailView(APIView):
 
         return Response(member_data, status=status.HTTP_200_OK)
 
+class TotalPointsAPIView(APIView):
+    def get(self, request, *args, **kwargs):
+        user_activities = UserActivity.objects.filter(user=request.user)
+        total_points = user_activities.aggregate(total_points=Sum('activity__points'))['total_points']
+        
+        if total_points is None:
+            total_points = 0
+            
+        activity_details = [
+            {
+                'activity_name': user_activity.activity.name,
+                'points': user_activity.activity.points,
+                'details': user_activity.details,
+                'date_time': user_activity.date_time
+            }
+            for user_activity in user_activities
+        ]
+        
+        return Response({
+            "total_points": total_points,
+            "activity_details": activity_details
+        })

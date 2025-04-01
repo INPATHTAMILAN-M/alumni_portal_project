@@ -35,7 +35,15 @@ class CreateJobPost(APIView):
             file=request.FILES.get('file'),
             post_type=request.data.get('post_type')
         )
-        
+        try:
+            activity = ActivityPoints.objects.get(name="Job Post")
+        except ActivityPoints.DoesNotExist:
+            return Response("Activity not found.")
+        UserActivity.objects.create(
+            user=request.user,
+            activity=activity,
+            details=f"{job_post.job_title} Posted"
+        )
         job_post.save()
         job_post.skills.set(request.data.getlist('skills'))  # Assuming skills is a list of IDs
         return Response({"message": "Job post created successfully"}, status=status.HTTP_201_CREATED)
@@ -312,7 +320,15 @@ class CreateBusinessDirectory(APIView):
             logo=request.FILES.get('logo'),
             listed_by=request.user
         )
-        
+        try:
+            activity = ActivityPoints.objects.get(name="Business Directory")
+        except ActivityPoints.DoesNotExist:
+            return Response("Activity not found.")
+        UserActivity.objects.create(
+            user=request.user,
+            activity=activity,
+            details=f"{business_directory.business_name} Posted"
+        )
         business_directory.save()
         return Response({"message": "Business directory entry created successfully"}, status=status.HTTP_201_CREATED)
 
@@ -701,7 +717,15 @@ class CreateApplication(APIView):
             notes_to_recruiter=request.data.get('notes_to_recruiter'),
             resume=request.FILES.get('resume')
         )
-        
+        try:
+            activity = ActivityPoints.objects.get(name="Business Directory")
+        except ActivityPoints.DoesNotExist:
+            return Response("Activity not found.")
+        UserActivity.objects.create(
+            user=request.user,
+            activity=activity,
+            details=f"Applied for {application.job_post.job_title}"
+        )
         application.save()
         application.skills.set(request.data.getlist('skills'))  # Assuming skills is a list of IDs
 

@@ -170,6 +170,15 @@ class Member_Experience(models.Model):
     def __str__(self):
         return f'{self.member} - {self.industry}'
 
+class Member_Milestone(models.Model):
+    member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='milestones')
+    title = models.CharField(max_length=255)
+    description = models.TextField(null=True, blank=True)
+    year = models.IntegerField()
+
+    def __str__(self):
+        return f'{self.member} - {self.title}'
+    
 class Alumni(models.Model):
     member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='alumni')
     website = models.URLField(blank=True)
@@ -182,3 +191,20 @@ class Alumni(models.Model):
 
     def __str__(self):
         return f'{self.member} - Alumni'
+
+class ActivityPoints(models.Model):
+    name = models.CharField(max_length=255)
+    points = models.IntegerField() 
+    details = models.TextField(null=True,blank=True)
+
+    def __str__(self):
+        return f'{self.name} - {self.points}'
+
+class UserActivity(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    activity = models.ForeignKey(ActivityPoints, on_delete=models.CASCADE)
+    date_time = models.DateTimeField(auto_now_add=True)
+    details = models.TextField()
+
+    def __str__(self):
+        return f'{self.user.username} - {self.activity.name} - {self.activity.points}'

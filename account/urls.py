@@ -1,9 +1,14 @@
-from django.urls import path
+from django.urls import path,include
+
+from account.viewsets.member_milestone_viewset import MemberMilestoneViewSet
 from .views import *
+from rest_framework.routers import DefaultRouter
 
-
+router = DefaultRouter()
+router.register(r'milestones', MemberMilestoneViewSet)
 
 urlpatterns = [
+    path('', include(router.urls)),
     path('login/', Login.as_view(), name='login'),
     path('forget_password/', ForgetPassword.as_view(), name='forget_password'),
     path('change_password/', ChangePassword.as_view(), name='change_password'),
@@ -127,6 +132,7 @@ urlpatterns = [
     path('all_members/', MemberListView.as_view(), name='all_members'),
     path('latest_members/', LatestMembers.as_view(), name='latest_members'),
     
+    # total reward
+    path('total_points/', TotalPointsAPIView.as_view(), name='total_points'),
 
-    
 ]

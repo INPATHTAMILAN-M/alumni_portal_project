@@ -3,6 +3,7 @@ from django.urls import path,include
 from account.viewsets.member_milestone_viewset import MemberMilestoneViewSet
 from .views import *
 from rest_framework.routers import DefaultRouter
+from rest_framework_simplejwt.views import TokenRefreshView
 
 router = DefaultRouter()
 router.register(r'milestones', MemberMilestoneViewSet)
@@ -12,7 +13,8 @@ urlpatterns = [
     path('login/', Login.as_view(), name='login'),
     path('forget_password/', ForgetPassword.as_view(), name='forget_password'),
     path('change_password/', ChangePassword.as_view(), name='change_password'),
-
+    path('login/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    
     # Manage users, groups and assign 
     path('create_user/', CreateUser.as_view(), name='create_user'),
     path('users/', Users.as_view(), name='user_list'),

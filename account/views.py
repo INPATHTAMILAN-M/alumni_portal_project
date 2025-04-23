@@ -1091,7 +1091,7 @@ class CreatingUser(APIView):
 # alumni can edit member details
 class ShowMemberData(APIView):
     
-    def get(self, request,member_id):
+    def get(self, request, member_id):
         # member_id = request.data.get('member_id')
         
         try:
@@ -1100,14 +1100,17 @@ class ShowMemberData(APIView):
             return Response({'error': 'Member not found'}, status=status.HTTP_400_BAD_REQUEST)
         
         member_data = {
-            'salutation': member.salutation.id,
-            'gender': member.gender,
-            'dob': member.dob,
-            'blood_group': member.blood_group,
-            'mobile_no': member.mobile_no,
-            'batch': member.batch.id,
-            'course': member.course.id,
-            'about_me': member.about_me,
+            'salutation': member.salutation.id if member.salutation else None,
+            'first_name': member.user.first_name if member.user else None,
+            'last_name': member.user.last_name if member.user else None,
+            'email': member.email if member.email else None,
+            'gender': member.gender if member.gender else None,
+            'dob': member.dob if member.dob else None,
+            'blood_group': member.blood_group if member.blood_group else None,
+            'mobile_no': member.mobile_no if member.mobile_no else None,
+            'batch': member.batch.id if member.batch else None,
+            'course': member.course.id if member.course else None,
+            'about_me': member.about_me if member.about_me else None,
         }
         
         return Response({'member_data': member_data}, status=status.HTTP_200_OK)
@@ -1118,14 +1121,22 @@ class ShowMemberData(APIView):
             return Response({'error': 'Member not found'}, status=status.HTTP_404_NOT_FOUND)
 
         # Update member fields with the new data
-        member.salutation_id = request.data.get('salutation')
-        member.gender = request.data.get('gender')
-        member.dob = request.data.get('dob')
-        member.blood_group = request.data.get('blood_group')
-        member.batch_id = request.data.get('batch')
-        member.course_id = request.data.get('course')
-        member.about_me = request.data.get('about_me')
-        member.mobile_no = request.data.get('mobile_no')
+        member.salutation_id = request.data.get('salutation') or member.salutation_id
+        member.gender = request.data.get('gender') or member.gender
+        member.dob = request.data.get('dob') or member.dob
+        member.blood_group = request.data.get('blood_group') or member.blood_group
+        member.batch_id = request.data.get('batch') or member.batch_id
+        member.course_id = request.data.get('course') or member.course_id
+        member.about_me = request.data.get('about_me') or member.about_me
+        member.mobile_no = request.data.get('mobile_no') or member.mobile_no
+        member.email = request.data.get('email') or member.email
+        if member.user:
+            member.user.first_name = request.data.get('first_name') or member.user.first_name
+            member.user.last_name = request.data.get('last_name') or member.user.last_name
+            member.user.email = member.email
+            member.user.save()
+        else:
+            return Response({'error': 'User not found for this member'}, status=status.HTTP_404_NOT_FOUND)
 
         # Save the updated member
         member.save()

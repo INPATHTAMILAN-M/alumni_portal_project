@@ -1107,14 +1107,16 @@ class ShowMemberData(APIView):
             'gender': member.gender if member.gender else None,
             'dob': member.dob if member.dob else None,
             'blood_group': member.blood_group if member.blood_group else None,
+            'batch': member.batch.id if member.batch else None,
+            'course': member.course.id if member.course else None,
             'mobile_no': member.mobile_no if member.mobile_no else None,
-            'batch': {
+            'batch_detail': {
                 'id': member.batch.id if member.batch else None,
                 'title': member.batch.title if member.batch else None,
                 'start_year': member.batch.start_year if member.batch else None,
                 'end_year': member.batch.end_year if member.batch else None,
             } if member.batch else None,
-            'course': {
+            'course_detail': {
                 'id': member.course.id if member.course else None,
                 'title': member.course.title if member.course else None,
                 'graduate': member.course.graduate if member.course else None,

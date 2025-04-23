@@ -2010,6 +2010,7 @@ class ProfileCompletionStatus(APIView):
             alumni = Alumni.objects.get(member=member)
             alumni_complete = all([alumni.address, alumni.postal_code])  # Both fields required for 10%
 
+        milestone = Member_Milestone.objects.filter(member=member).exists()
         # Calculate overall completion status
         completion_percentage = 0
 
@@ -2020,6 +2021,7 @@ class ProfileCompletionStatus(APIView):
         completion_percentage += 10 if education_complete else 0  # Education
         completion_percentage += 10 if experience_complete else 0  # Experience
         completion_percentage += 10 if alumni_complete else 0  # Alumni
+        completion_percentage += 10 if milestone else 0  # Milestone
 
         # Normalize to a total of 100%
         completion_percentage = min(completion_percentage, 100)

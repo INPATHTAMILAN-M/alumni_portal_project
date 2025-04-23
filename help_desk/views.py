@@ -79,7 +79,7 @@ class CreateTicket(APIView):
 
     def get(self, request):
         # Get the Member object associated with the authenticated user
-        member = Member.objects.get(user=request.user).first()
+        member = Member.objects.filter(user=request.user).first()
         
         # Get the Alumni object associated with the Member
         alumni = Alumni.objects.get(member=member)

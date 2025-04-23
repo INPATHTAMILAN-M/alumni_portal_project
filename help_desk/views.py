@@ -80,9 +80,14 @@ class CreateTicket(APIView):
     def get(self, request):
         # Get the Member object associated with the authenticated user
         member = Member.objects.filter(user=request.user).first()
+        if not member:
+            return Response({"error": "Member not found."}, status=status.HTTP_404_NOT_FOUND)
         
         # Get the Alumni object associated with the Member
-        alumni = Alumni.objects.get(member=member)
+        try:
+            alumni = Alumni.objects.get(member=member)
+        except Alumni.DoesNotExist:
+            return Response({"error": "Alumni not found."}, status=status.HTTP_404_NOT_FOUND)
         
         # Prepare the response data
         response_data = {

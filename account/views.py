@@ -1715,7 +1715,7 @@ class CreateMemberSkill(APIView):
             UserActivity.objects.create(
                 user=request.user,
                 activity=activity,
-                details=f"{skill.name} Added"
+                details=f"{skill.skill} Added"
             )
             return Response({"message": "Member skill created successfully"}, status=status.HTTP_201_CREATED)
         except (Member.DoesNotExist, Skill.DoesNotExist):

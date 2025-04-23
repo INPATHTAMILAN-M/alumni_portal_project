@@ -1111,6 +1111,7 @@ class ShowMemberData(APIView):
             'batch': member.batch.id if member.batch else None,
             'course': member.course.id if member.course else None,
             'about_me': member.about_me if member.about_me else None,
+            'register_no': member.register_no if member.register_no else None,
         }
         
         return Response({'member_data': member_data}, status=status.HTTP_200_OK)
@@ -1130,6 +1131,7 @@ class ShowMemberData(APIView):
         member.about_me = request.data.get('about_me') or member.about_me
         member.mobile_no = request.data.get('mobile_no') or member.mobile_no
         member.email = request.data.get('email') or member.email
+        member.register_no = request.data.get('register_no') or member.register_no
         if member.user:
             member.user.first_name = request.data.get('first_name') or member.user.first_name
             member.user.last_name = request.data.get('last_name') or member.user.last_name

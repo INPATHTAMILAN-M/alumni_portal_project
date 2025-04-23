@@ -1911,6 +1911,10 @@ class CreateAlumni(APIView):
     # permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        member_id = request.data.get('member')
+        if Alumni.objects.filter(member_id=member_id).exists():
+            return Response({"message": "Alumni contact for this member already exists"}, status=status.HTTP_400_BAD_REQUEST)
+        
         serializer = AlumniSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -1949,13 +1953,18 @@ class RetrieveAlumni(APIView):
                 alumni_check = Alumni.objects.filter(member=member).exists() and all(
                     alum.member for alum in Alumni.objects.filter(member=member)
                 )
+                
+                milestone_check = Member_Milestone.objects.filter(member=member).exists() and all(
+                    milestone.member for milestone in Member_Milestone.objects.filter(member=member)
+                )
 
                 # Creating a dictionary for module checks
                 modules = {
-                    'module1': profile_picture_check,  # True if profile photo exists
-                    'module2': module2_check,        # True if skills and education are valid
-                    'module3': experience_check,     # True if experience is valid
-                    'module4': alumni_check,         # True if alumni information is valid
+                    'module1': profile_picture_check,  # True if profile 
+                    'module2': module2_check,        # True if skills and education 
+                    'module3': experience_check,     # True if experience
+                    'module4': alumni_check,         # True if alumni information
+                    'module5': milestone_check,       # True if milestone
                 }
 
             else:
@@ -1963,7 +1972,7 @@ class RetrieveAlumni(APIView):
                 modules = {}
             return Response({'modules': modules, 'data': serializer.data}, status=status.HTTP_200_OK)
         except Alumni.DoesNotExist:
-            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "Alumni Not found for this member."}, status=status.HTTP_404_NOT_FOUND)
         except Alumni.MultipleObjectsReturned:
             return Response({"detail": "Multiple records found."}, status=status.HTTP_400_BAD_REQUEST)
 

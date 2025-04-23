@@ -213,23 +213,31 @@ class PostCommentViewSet(viewsets.ModelViewSet):
         return Response({"message": "Comments posted"}, status=status.HTTP_201_CREATED)
 
 class PostCommentDelete(APIView):
-    permission_classes = [IsAuthenticated]  
+    permission_classes = [IsAuthenticated]
+
     def delete(self, request, comment_id):
         try:
             comment = PostComment.objects.get(id=comment_id)
 
             if comment.comment_by != request.user and not (
-            request.user.groups.filter(name='Administrator').exists() or 
-            request.user.groups.filter(name='Alumni_Manager').exists() ):
-                return Response({"message": "You do not have permission to delete this comment."}, status=status.HTTP_403_FORBIDDEN)
-        
-            comment.delete()
+                request.user.groups.filter(name__in=['Administrator', 'Alumni_Manager']).exists()
+            ):
+                return Response(
+                    {"message": "You do not have permission to delete this comment."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
 
-            return Response({"message": "Comment deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+            comment.delete()
+            return Response(
+                {"message": "Comment deleted successfully."},
+                status=status.HTTP_200_OK
+            )
 
         except PostComment.DoesNotExist:
-            return Response({"message": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
-        
+            return Response(
+                {"message": "Comment not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
 # manage post likes
 class PostLikeViewSet(viewsets.ModelViewSet):
     queryset = PostLike.objects.all()

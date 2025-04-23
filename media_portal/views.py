@@ -129,6 +129,15 @@ class UpdatePost(APIView):
             "message": "Post updated successfully"
         }, status=status.HTTP_200_OK)
  
+ #  get single post
+class PostDetailView(APIView):
+    permission_classes = [IsAuthenticated]  
+
+    def get(self, request, post_id):
+        post = get_object_or_404(Post, id=post_id)
+        serializer = PostSerializer(post, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
 # manage pending posts
 class PostPendingViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()

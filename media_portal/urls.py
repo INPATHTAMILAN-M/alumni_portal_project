@@ -20,6 +20,7 @@ path('',include(router.urls)),
 # manage post
 path('create_post/', CreatePost.as_view(), name='create_post'),  # For creating a new post
 path('update_post/<int:post_id>/', UpdatePost.as_view(), name='update_post'),
+path('post_detail/<int:post_id>/', PostDetailView.as_view(), name='post_detail'),  # For deleting a post
 
 # delete post comment
 path('delete_post_comment/<int:comment_id>/', PostCommentDelete.as_view(), name='delete_post_comment'),

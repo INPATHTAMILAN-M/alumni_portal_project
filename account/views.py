@@ -1108,8 +1108,22 @@ class ShowMemberData(APIView):
             'dob': member.dob if member.dob else None,
             'blood_group': member.blood_group if member.blood_group else None,
             'mobile_no': member.mobile_no if member.mobile_no else None,
-            'batch': member.batch.id if member.batch else None,
-            'course': member.course.id if member.course else None,
+            'batch': {
+                'id': member.batch.id if member.batch else None,
+                'title': member.batch.title if member.batch else None,
+                'start_year': member.batch.start_year if member.batch else None,
+                'end_year': member.batch.end_year if member.batch else None,
+            } if member.batch else None,
+            'course': {
+                'id': member.course.id if member.course else None,
+                'title': member.course.title if member.course else None,
+                'graduate': member.course.graduate if member.course else None,
+                'department': {
+                    'id': member.course.department.id if member.course.department else None,
+                    'short_name': member.course.department.short_name if member.course.department else None,
+                    'full_name': member.course.department.full_name if member.course.department else None,
+                } if member.course.department else None,
+            } if member.course else None,
             'about_me': member.about_me if member.about_me else None,
             'register_no': member.register_no if member.register_no else None,
         }
@@ -1834,8 +1848,8 @@ class CreateMemberExperience(APIView):
         if serializer.is_valid():
             serializer.save()
             member_experience = serializer
-            industry = member_experience.validated_data.get('degree')
-            role = member_experience.validated_data.get('institute')
+            industry = member_experience.validated_data.get('industry')
+            role = member_experience.validated_data.get('role')
             try:
                 activity = ActivityPoints.objects.get(name="Experience")
             except ActivityPoints.DoesNotExist:

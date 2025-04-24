@@ -159,7 +159,7 @@ class MyTicket(APIView):
         except Member.DoesNotExist:
             return Response({"error": "Member not found."}, status=status.HTTP_404_NOT_FOUND)
         except Alumni.DoesNotExist:
-            return Response({"error": "Alumni profile not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Please fill the contact details in your profile."}, status=status.HTTP_404_NOT_FOUND)
 
 # Retrieve all tickets
 class RetrieveTicket(APIView):

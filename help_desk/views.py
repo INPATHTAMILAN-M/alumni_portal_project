@@ -86,7 +86,7 @@ class CreateTicket(APIView):
         # Get the Alumni object associated with the Member
         alumni = Alumni.objects.filter(member=member).first()
         if not alumni:
-            return Response({"error": "Alumni not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Please complete your profile before using the help desk."}, status=status.HTTP_404_NOT_FOUND)
         
         # Prepare the response data
         response_data = {

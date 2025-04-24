@@ -132,28 +132,34 @@ class MyTicket(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # Get the Member object associated with the authenticated user
-        member = Member.objects.get(user=request.user)
-        # Get the Alumni object associated with the Member
-        alumni = Alumni.objects.get(member=member)
+        try:
+            # Get the Member object associated with the authenticated user
+            member = Member.objects.get(user=request.user)
+            # Get the Alumni object associated with the Member
+            alumni = Alumni.objects.get(member=member)
 
-        # Get tickets associated with the Alumni
-        tickets = Ticket.objects.filter(alumni=alumni).order_by('-id')
-        
-        # Manually create a list of ticket data
-        tickets_data = []
-        for ticket in tickets:
-            tickets_data.append({
-                'id': ticket.id,
-                'category': ticket.category.category,  # Adjust based on your TicketCategory model
-                'status': ticket.status.status,  # Adjust based on your TicketStatus model
-                'priority': ticket.priority,
-                'due_date': ticket.due_date,
-                'last_status_on': ticket.last_status_on,
-                'content': ticket.content,
-            })
+            # Get tickets associated with the Alumni
+            tickets = Ticket.objects.filter(alumni=alumni).order_by('-id')
+            
+            # Create a list of ticket data
+            tickets_data = [
+                {
+                    'id': ticket.id,
+                    'category': ticket.category.category,  # Adjust based on your TicketCategory model
+                    'status': ticket.status.status,  # Adjust based on your TicketStatus model
+                    'priority': ticket.priority,
+                    'due_date': ticket.due_date,
+                    'last_status_on': ticket.last_status_on,
+                    'content': ticket.content,
+                }
+                for ticket in tickets
+            ]
 
-        return Response(tickets_data, status=status.HTTP_200_OK)
+            return Response(tickets_data, status=status.HTTP_200_OK)
+        except Member.DoesNotExist:
+            return Response({"error": "Member not found."}, status=status.HTTP_404_NOT_FOUND)
+        except Alumni.DoesNotExist:
+            return Response({"error": "Alumni profile not found."}, status=status.HTTP_404_NOT_FOUND)
 
 # Retrieve all tickets
 class RetrieveTicket(APIView):

@@ -49,14 +49,15 @@ class MemberExperienceSerializer(serializers.ModelSerializer):
 class LocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Location
-        fields = ['name']  # Adjust this to match your model fields
+        fields = ['location']  # Adjust this to match your model fields
 
 
 class AlumniSerializer(serializers.ModelSerializer):
+    location_detail = LocationSerializer(source='location', read_only=True)
+    
     class Meta:
         model = Alumni
-        fields = ['id', 'member', 'website', 'linked_in', 'twitter_handle', 'address', 'location', 'postal_code', 'registered_on']
-
+        fields = ['id', 'member', 'website', 'linked_in', 'twitter_handle', 'address', 'location', 'location_detail', 'postal_code', 'registered_on']
 
 
 # Serializer for Post

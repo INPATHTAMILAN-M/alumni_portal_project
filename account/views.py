@@ -1761,10 +1761,9 @@ class DeleteMemberSkill(APIView):
         try:
             member_skill = Member_Skills.objects.get(id=member_skill_id)
             member_skill.delete()
-            return Response({"message": "Member skill deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+            return Response({"message": "Member skill deleted successfully"}, status=status.HTTP_200_OK)
         except Member_Skills.DoesNotExist:
             return Response({"message": "Member skill not found"}, status=status.HTTP_404_NOT_FOUND)
-        
         
 # manage member education
 class CreateMemberEducation(APIView):
@@ -1837,7 +1836,7 @@ class DeleteMemberEducation(APIView):
         try:
             education = Member_Education.objects.get(id=education_id)
             education.delete()
-            return Response({"message": "Member education deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+            return Response({"message": "Member education deleted successfully"}, status=status.HTTP_200_OK)
         except Member_Education.DoesNotExist:
             return Response({"message": "Member education not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -1915,7 +1914,7 @@ class DeleteMemberExperience(APIView):
         try:
             experience = Member_Experience.objects.get(id=experience_id)
             experience.delete()
-            return Response({"message": "Member experience deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+            return Response({"message": "Member experience deleted successfully"}, status=status.HTTP_200_OK)
         except Member_Experience.DoesNotExist:
             return Response({"message": "Member experience not found"}, status=status.HTTP_404_NOT_FOUND)
 

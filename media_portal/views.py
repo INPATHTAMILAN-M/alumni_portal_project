@@ -158,10 +158,12 @@ class PostPendingViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def published_posts(self, request):
-        
         published_posts = Post.objects.filter(published=True).order_by('-id')
-        serializer = self.get_serializer(published_posts, many=True)
-        return Response(serializer.data)
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_posts = paginator.paginate_queryset(published_posts, request)
+        serializer = self.get_serializer(paginated_posts, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
     @action(detail = False, methods = ['put'],url_path = '(?P<post_id>\d+)')
     def publish_post(self, request,post_id, *args, **kwargs):

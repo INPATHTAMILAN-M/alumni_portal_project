@@ -84,11 +84,16 @@ class LatestJobPost(APIView):
     # permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        job_posts = JobPost.objects.filter(is_active=True).order_by('-id')[:5]
+        job_posts = JobPost.objects.filter(is_active=True).order_by('-id')
         
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 5  # Set the number of items per page
+        paginated_job_posts = paginator.paginate_queryset(job_posts, request)
+
         # Manually create a list of job post data
         job_posts_data = []
-        for job in job_posts:
+        for job in paginated_job_posts:
             job_posts_data.append({
                 'id': job.id,
                 'posted_by': job.posted_by.username, 
@@ -110,7 +115,7 @@ class LatestJobPost(APIView):
                 # 'is_active': job.is_active,
             })
 
-        return Response(job_posts_data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(job_posts_data)
     
 class MainRetrieveJobPost(APIView):
     permission_classes = [IsAuthenticated]

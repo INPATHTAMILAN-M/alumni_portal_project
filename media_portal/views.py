@@ -14,7 +14,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from datetime import date
 from django.db.models import Q
-
+from rest_framework.pagination import PageNumberPagination
 
 class PostCategoryViewSet(viewsets.ModelViewSet):
     queryset = PostCategory.objects.all()
@@ -351,9 +351,13 @@ class PostFilterView(APIView):
             'post_category'
         ).filter(filters)
 
-        serializer = PostSerializer(queryset, many=True, context={'request': request})
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        serializer = PostSerializer(paginated_queryset, many=True, context={'request': request})
+
+        return paginator.get_paginated_response(serializer.data)
     
     
 # manage albums

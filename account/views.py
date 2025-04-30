@@ -2158,6 +2158,7 @@ class MemberFilterView(APIView):
         institution = request.data.get('institution', None)
         location = request.data.get('location', None)
         first_name = request.data.get('first_name', None)
+        search = request.data.get('search', None)
         email = request.data.get('email', None)
         dob = request.data.get('dob', None)
         registered = request.data.get('registered', None)  # New filter for registration status
@@ -2194,6 +2195,8 @@ class MemberFilterView(APIView):
             filters &= Q(experience__location__id=location) | Q(education__location__id=location)
 
         # Additional filters for personal details
+        if search not in [None, ""]:
+            filters &= Q(user__first_name__icontains=search) | Q(user__last_name__icontains=search) | Q(email__icontains=search)
         if first_name:
             filters &= Q(user__first_name__icontains=first_name)
         if email:

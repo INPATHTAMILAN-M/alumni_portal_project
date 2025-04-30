@@ -618,19 +618,20 @@ class JobPostFilterView(APIView):
         # Apply the filters in a single query
         queryset = JobPost.objects.filter(filters).annotate(application_count=Count('application')).order_by('-id')
 
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+
         # Prepare the response data without serializers
         data = []
-        for job in queryset:
+        for job in paginated_queryset:
             data.append({
                 'id': job.id,
                 'posted_by': job.posted_by.username, 
                 'job_title': job.job_title,
                 'industry': job.industry.title, 
-                # 'experience_level_from': job.experience_level_from,
-                # 'experience_level_to': job.experience_level_to,
                 'location': job.location,
-                # 'contact_email': job.contact_email,
-                # 'contact_link': job.contact_link,
                 'role': job.role.role,  # Adjust based on your Role model
                 'skills': [skill.skill for skill in job.skills.all()],  # List of skill names
                 'salary_package': job.salary_package,
@@ -641,10 +642,9 @@ class JobPostFilterView(APIView):
                 'posted_on': job.posted_on,
                 'is_active': job.is_active,
                 'application_count': job.application_count,
-                
             })
 
-        return Response(data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(data)
 
 # filter Business directory
 

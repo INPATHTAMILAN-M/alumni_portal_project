@@ -7,16 +7,18 @@ from .models import *
 from account.models import Member
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-
+from rest_framework.pagination import PageNumberPagination
 #  retrieve status
 class TicketStatusList(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
         statuses = TicketStatus.objects.all()
-        status_list = [{"id": status.id, "status": status.status} for status in statuses]
-        return Response(status_list, status=status.HTTP_200_OK)
-    
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_statuses = paginator.paginate_queryset(statuses, request)
+        status_list = [{"id": status.id, "status": status.status} for status in paginated_statuses]
+        return paginator.get_paginated_response(status_list)
 # manage category
 class CreateTicketCategory(APIView):
     permission_classes = [IsAuthenticated]
@@ -29,14 +31,17 @@ class CreateTicketCategory(APIView):
 class RetrieveTicketCategory(APIView):
     def get(self, request):
         categories = TicketCategory.objects.all().order_by('-id')
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_categories = paginator.paginate_queryset(categories, request)
         data = [
             {
                 "id": category.id,
                 "category": category.category
             }
-            for category in categories
+            for category in paginated_categories
         ]
-        return Response(data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(data)
 
 class UpdateTicketCategory(APIView):
     permission_classes = [IsAuthenticated]
@@ -141,6 +146,11 @@ class MyTicket(APIView):
             # Get tickets associated with the Alumni
             tickets = Ticket.objects.filter(alumni=alumni).order_by('-id')
             
+            # Apply pagination
+            paginator = PageNumberPagination()
+            paginator.page_size = 10  # Set the number of items per page
+            paginated_tickets = paginator.paginate_queryset(tickets, request)
+            
             # Create a list of ticket data
             tickets_data = [
                 {
@@ -152,10 +162,10 @@ class MyTicket(APIView):
                     'last_status_on': ticket.last_status_on,
                     'content': ticket.content,
                 }
-                for ticket in tickets
+                for ticket in paginated_tickets
             ]
 
-            return Response(tickets_data, status=status.HTTP_200_OK)
+            return paginator.get_paginated_response(tickets_data)
         except Member.DoesNotExist:
             return Response({"error": "Member not found."}, status=status.HTTP_404_NOT_FOUND)
         except Alumni.DoesNotExist:
@@ -168,8 +178,13 @@ class RetrieveTicket(APIView):
     def get(self, request):
         tickets = Ticket.objects.all()
         
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_tickets = paginator.paginate_queryset(tickets, request)
+        
         tickets_data = []
-        for ticket in tickets:
+        for ticket in paginated_tickets:
             full_name = f"{ticket.alumni.member.user.first_name} {ticket.alumni.member.user.last_name}"
             tickets_data.append({
                 'ticket_id': ticket.id,
@@ -187,8 +202,7 @@ class RetrieveTicket(APIView):
                 'content': ticket.content,
             })
 
-        return Response(tickets_data, status=status.HTTP_200_OK)
-    
+        return paginator.get_paginated_response(tickets_data)
 # get open ticket
 class RetrieveOpenTicket(APIView):
     # permission_classes = [IsAuthenticated]
@@ -196,8 +210,13 @@ class RetrieveOpenTicket(APIView):
     def get(self, request):
         tickets = Ticket.objects.filter(status__status="Open")
         
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_tickets = paginator.paginate_queryset(tickets, request)
+        
         tickets_data = []
-        for ticket in tickets:
+        for ticket in paginated_tickets:
             full_name = f"{ticket.alumni.member.user.first_name} {ticket.alumni.member.user.last_name}"
             tickets_data.append({
                 'ticket_id': ticket.id,
@@ -214,7 +233,7 @@ class RetrieveOpenTicket(APIView):
                 'content': ticket.content,
             })
 
-        return Response(tickets_data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(tickets_data)
 
 
 # get all faculty 
@@ -226,11 +245,16 @@ class FacultyUsers(APIView):
 
         if faculty_group:
             users = User.objects.filter(groups=faculty_group)
-            user_data = [{'id': user.id, 'username': user.username} for user in users]
-            return Response(user_data)
+            
+            # Apply pagination
+            paginator = PageNumberPagination()
+            paginator.page_size = 10  # Set the number of items per page
+            paginated_users = paginator.paginate_queryset(users, request)
+            
+            user_data = [{'id': user.id, 'username': user.username} for user in paginated_users]
+            return paginator.get_paginated_response(user_data)
         else:
             return Response({'detail': 'Group not found.'}, status=404)
-        
         
 class AssignedUsersForTicket(APIView):
     def get(self, request, ticket_id):
@@ -240,6 +264,11 @@ class AssignedUsersForTicket(APIView):
         # Retrieve all assignments for the ticket
         assignments = TicketAssignment.objects.filter(ticket=ticket)
 
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_assignments = paginator.paginate_queryset(assignments, request)
+
         # Create a list of assigned users
         assigned_users = [
             {
@@ -247,10 +276,10 @@ class AssignedUsersForTicket(APIView):
                 'username': assignment.assigned_to.username,
                 'message': assignment.message,
             }
-            for assignment in assignments
+            for assignment in paginated_assignments
         ]
 
-        return Response({"assigned_users": assigned_users}, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response({"assigned_users": assigned_users})
     
 # assign tickets to faculty
 class TicketAssignTo(APIView):
@@ -307,12 +336,16 @@ class MyTicketAssignment(APIView):
 
     def get(self, request):
         # Get the assigned ticket assignments for the authenticated user
-        assigned_tickets = TicketAssignment.objects.filter(assigned_to=request.user,ticket__status__status="Assigned")
+        assigned_tickets = TicketAssignment.objects.filter(assigned_to=request.user, ticket__status__status="Assigned")
+        
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_assignments = paginator.paginate_queryset(assigned_tickets, request)
         
         # Create a list of assignments data
         assignments_data = []
-        
-        for assignment in assigned_tickets:
+        for assignment in paginated_assignments:
             full_name = f"{assignment.ticket.alumni.member.user.first_name} {assignment.ticket.alumni.member.user.last_name}"
             has_response = bool(assignment.response)
             assignments_data.append({
@@ -321,15 +354,13 @@ class MyTicketAssignment(APIView):
                 'name': full_name,
                 'category': assignment.ticket.category.category,
                 'status': assignment.ticket.status.status,
-                # 'ticket_content': assignment.ticket.content, 
                 'assigned_on': assignment.assigned_on,
-                'message':assignment.message,
+                'message': assignment.message,
                 'priority': assignment.ticket.priority,
-                # 'last_status_on': assignment.ticket.last_status_on,
                 "assignment_response": has_response
             })
 
-        return Response(assignments_data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(assignments_data)
 
 # Respond Ticket
 class ResponceTicketAssignment(APIView):
@@ -372,23 +403,26 @@ class IrresponseTicket(APIView):
         # Get the assigned ticket assignments for the authenticated user
         assigned_tickets = TicketAssignment.objects.filter(response__isnull=True)
         
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_assignments = paginator.paginate_queryset(assigned_tickets, request)
+        
         # Create a list of assignments data
         assignments_data = []
-        for assignment in assigned_tickets:
+        for assignment in paginated_assignments:
             assignments_data.append({
                 'id': assignment.id,
                 'ticket_id': assignment.ticket.id,
                 'ticket_category': assignment.ticket.category.category,
                 'status': assignment.ticket.status.status,
-                # 'ticket_content': assignment.ticket.content, 
                 'assigned_on': assignment.assigned_on,
-                'message':assignment.message,
-                'responce':assignment.response,
+                'message': assignment.message,
+                'response': assignment.response,
                 'priority': assignment.ticket.priority,
-                # 'last_status_on': assignment.ticket.last_status_on,
             })
 
-        return Response(assignments_data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(assignments_data)
 
 # All responced tickets
 # class ResponcedTicket(APIView):
@@ -420,7 +454,6 @@ class ResponcedTicket(APIView):
 
     def get(self, request):
         # Get the assigned ticket assignments for the authenticated user
-        # assigned_tickets = TicketAssignment.objects.exclude(response__isnull=True).exclude(response__exact='')
         assigned_tickets = TicketAssignment.objects.filter(ticket__status__status="Replied")
 
         # Use a dictionary to hold unique tickets
@@ -445,7 +478,12 @@ class ResponcedTicket(APIView):
         # Convert the dictionary values to a list
         assignments_data = list(unique_tickets.values())
 
-        return Response(assignments_data, status=status.HTTP_200_OK)
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_data = paginator.paginate_queryset(assignments_data, request)
+
+        return paginator.get_paginated_response(paginated_data)
 
 class DetailTicket(APIView):
     # permission_classes = [IsAuthenticated]
@@ -673,9 +711,14 @@ class TicketFilterView(APIView):
         # Apply the filters in a single query
         queryset = Ticket.objects.filter(filters)
 
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+
         # Prepare the response data
         data = []
-        for ticket in queryset:
+        for ticket in paginated_queryset:
             full_name = f"{ticket.alumni.member.user.first_name} {ticket.alumni.member.user.last_name}"
             data.append({
                 'ticket_id': ticket.id,
@@ -692,7 +735,7 @@ class TicketFilterView(APIView):
                 'content': ticket.content,
             })
 
-        return Response(data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(data)
     
 class TicketFilterOpenView(APIView):
     # permission_classes = [IsAuthenticated]
@@ -716,9 +759,14 @@ class TicketFilterOpenView(APIView):
         # Apply the filters in a single query
         queryset = Ticket.objects.filter(filters)
 
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+
         # Prepare the response data
         data = []
-        for ticket in queryset:
+        for ticket in paginated_queryset:
             full_name = f"{ticket.alumni.member.user.first_name} {ticket.alumni.member.user.last_name}"
             data.append({
                 'ticket_id': ticket.id,
@@ -735,7 +783,7 @@ class TicketFilterOpenView(APIView):
                 'content': ticket.content,
             })
 
-        return Response(data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(data)
     
 class TicketFilterRepliedView(APIView):
     # permission_classes = [IsAuthenticated]
@@ -759,9 +807,14 @@ class TicketFilterRepliedView(APIView):
         # Apply the filters in a single query
         queryset = Ticket.objects.filter(filters)
 
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+
         # Prepare the response data
         data = []
-        for ticket in queryset:
+        for ticket in paginated_queryset:
             full_name = f"{ticket.alumni.member.user.first_name} {ticket.alumni.member.user.last_name}"
             data.append({
                 'ticket_id': ticket.id,
@@ -778,4 +831,4 @@ class TicketFilterRepliedView(APIView):
                 'content': ticket.content,
             })
 
-        return Response(data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(data)

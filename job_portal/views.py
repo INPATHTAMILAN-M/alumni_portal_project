@@ -123,9 +123,14 @@ class MainRetrieveJobPost(APIView):
     def get(self, request):
         job_posts = JobPost.objects.annotate(application_count=Count('application')).order_by('-id')
         
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_job_posts = paginator.paginate_queryset(job_posts, request)
+
         # Manually create a list of job post data
         job_posts_data = []
-        for job in job_posts:
+        for job in paginated_job_posts:
             job_posts_data.append({
                 'id': job.id,
                 # 'posted_by': job.posted_by.username,  # Assuming User has a username field
@@ -148,7 +153,7 @@ class MainRetrieveJobPost(APIView):
                 'application_count': job.application_count,
             })
 
-        return Response(job_posts_data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(job_posts_data)
     
 class MyJobPost(APIView):
     # permission_classes = [IsAuthenticated]
@@ -277,15 +282,21 @@ class CreateIndustryType(APIView):
 class RetrieveIndustryType(APIView):
     def get(self, request):
         industry_types = Industry_Type.objects.all()
+
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_industry_types = paginator.paginate_queryset(industry_types, request)
+
         data = [
             {
                 "id": industry_type.id,
                 "type_name": industry_type.type_name,
                 "description": industry_type.description
             }
-            for industry_type in industry_types
+            for industry_type in paginated_industry_types
         ]
-        return Response(data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(data)
 
 class UpdateIndustryType(APIView):
     permission_classes = [IsAuthenticated, IsAlumniManagerOrAdministrator]
@@ -349,8 +360,14 @@ class RetrieveBusinessDirectory(APIView):
     def get(self, request):
         try:
             business_directories = BusinessDirectory.objects.all()
+
+            # Apply pagination
+            paginator = PageNumberPagination()
+            paginator.page_size = 10  # Set the number of items per page
+            paginated_business_directories = paginator.paginate_queryset(business_directories, request)
+
             data = []
-            for business in business_directories:
+            for business in paginated_business_directories:
                 data.append({
                     "id": business.id,
                     "business_name": business.business_name,
@@ -362,11 +379,12 @@ class RetrieveBusinessDirectory(APIView):
                     # "contact_number": business.contact_number,
                     # "country_code": business.country_code.id,  # or business.country_code.name if you want the name
                     # "are_you_part_of_management": business.are_you_part_of_management,
-                     "logo": request.build_absolute_uri(business.logo.url) if business.logo else None,
+                    "logo": request.build_absolute_uri(business.logo.url) if business.logo else None,
                     "listed_on": business.listed_on,
                     # "listed_by": business.listed_by.id,  # or business.listed_by.username if you want the username
                 })
-            return Response(data, status=status.HTTP_200_OK)
+
+            return paginator.get_paginated_response(data)
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -374,8 +392,14 @@ class MyBusinessDirectory(APIView):
     def get(self, request):
         try:
             business_directories = BusinessDirectory.objects.filter(listed_by=request.user).order_by('-id')
+
+            # Apply pagination
+            paginator = PageNumberPagination()
+            paginator.page_size = 10  # Set the number of items per page
+            paginated_business_directories = paginator.paginate_queryset(business_directories, request)
+
             data = []
-            for business in business_directories:
+            for business in paginated_business_directories:
                 data.append({
                     "id": business.id,
                     "business_name": business.business_name,
@@ -387,12 +411,12 @@ class MyBusinessDirectory(APIView):
                     # "contact_number": business.contact_number,
                     # "country_code": business.country_code.country_code,  
                     # "are_you_part_of_management": business.are_you_part_of_management,
-                     "logo": request.build_absolute_uri(business.logo.url) if business.logo else None,
+                    "logo": request.build_absolute_uri(business.logo.url) if business.logo else None,
                     "listed_on": business.listed_on,
                     # "listed_by": business.listed_by.id,  # or business.listed_by.username if you want the username
                 })
-            return Response(data, status=status.HTTP_200_OK)
-        
+            return paginator.get_paginated_response(data)
+
         except BusinessDirectory.DoesNotExist:
             return Response({"message": "Business directory not found"}, status=status.HTTP_404_NOT_FOUND)
         
@@ -519,9 +543,12 @@ class JobPostMainFilterView(APIView):
         location = request.data.get('location', None)
         role_id = request.data.get('role', None)  # Assuming you're passing the role ID
         post_type = request.data.get('post_type', None)
+        search = request.data.get('search', None)
 
         # Create a dictionary for the filter arguments
         filters = Q()
+        if search:
+            filters &= Q(job_title__icontains=search) | Q(location__icontains=search)
         if job_title:
             filters &= Q(job_title__icontains=job_title)
         if industry_id:
@@ -536,19 +563,20 @@ class JobPostMainFilterView(APIView):
         # Apply the filters in a single query
         queryset = JobPost.objects.filter(filters).annotate(application_count=Count('application')).order_by('-id')
 
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+
         # Prepare the response data without serializers
         data = []
-        for job in queryset:
+        for job in paginated_queryset:
             data.append({
                 'id': job.id,
                 'posted_by': job.posted_by.username, 
                 'job_title': job.job_title,
                 'industry': job.industry.title, 
-                # 'experience_level_from': job.experience_level_from,
-                # 'experience_level_to': job.experience_level_to,
                 'location': job.location,
-                # 'contact_email': job.contact_email,
-                # 'contact_link': job.contact_link,
                 'role': job.role.role,  # Adjust based on your Role model
                 'skills': [skill.skill for skill in job.skills.all()],  # List of skill names
                 'salary_package': job.salary_package,
@@ -559,10 +587,9 @@ class JobPostMainFilterView(APIView):
                 'posted_on': job.posted_on,
                 'is_active': job.is_active,
                 'application_count': job.application_count,
-                
             })
 
-        return Response(data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(data)
     
 class JobPostFilterView(APIView):
     permission_classes = [IsAuthenticated]
@@ -639,13 +666,17 @@ class BusinessDirectoryFilterView(APIView):
         if location:
             filters &= Q(location__icontains=location)
 
-
         # Apply the filters in a single query
         queryset = BusinessDirectory.objects.filter(filters).order_by('-id')
 
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+
         # Prepare the response data
         data = []
-        for business in queryset:
+        for business in paginated_queryset:
             data.append({
                 "id": business.id,
                 "business_name": business.business_name,
@@ -662,7 +693,7 @@ class BusinessDirectoryFilterView(APIView):
                 # "listed_by": business.listed_by.id,  # or business.listed_by.username if you want the username
             })
 
-        return Response(data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(data)
 
 # manage comments
 class CreateJobComment(APIView):

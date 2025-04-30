@@ -830,15 +830,20 @@ class CreateApplication(APIView):
 class MyJobApplication(APIView):
     # permission_classes = [IsAuthenticated]
 
-    def get(self, request,job_post_id):
+    def get(self, request, job_post_id):
         # Get the job posts created by the authenticated user
         job_post = JobPost.objects.get(id=job_post_id)
 
         # Get applications for those job posts
         applications = Application.objects.filter(job_post=job_post).order_by('-id')
 
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_applications = paginator.paginate_queryset(applications, request)
+
         applications_data = []
-        for application in applications:
+        for application in paginated_applications:
             applications_data.append({
                 'id': application.id,
                 'full_name': application.full_name,
@@ -848,7 +853,7 @@ class MyJobApplication(APIView):
                 'resume': request.build_absolute_uri(application.resume.url) if application.resume else None,
             })
 
-        return Response(applications_data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(applications_data)
 
 class DetailViewApplication(APIView):
     # permission_classes = [IsAuthenticated]

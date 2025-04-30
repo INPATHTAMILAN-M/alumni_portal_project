@@ -52,7 +52,7 @@ class RetrieveJobPost(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        job_posts = JobPost.objects.filter(is_active=True)
+        job_posts = JobPost.objects.filter(is_active=True).order_by('-id')
         
         # Apply pagination
         paginator = PageNumberPagination()

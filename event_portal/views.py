@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-
+from rest_framework.pagination import PageNumberPagination
 from account.models import Member
 from .models import *
 from account.permissions import *
@@ -33,14 +33,17 @@ class CreateEventCategory(APIView):
 class RetrieveEventCategory(APIView):
     def get(self, request):
         event_categories = EventCategory.objects.all().order_by('-id')
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_categories = paginator.paginate_queryset(event_categories, request)
         data = [
             {
                 "category_id": event_category.id,
                 "title": event_category.title,
             }
-            for event_category in event_categories
+            for event_category in paginated_categories
         ]
-        return Response(data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(data)
 
 class UpdateEventCategory(APIView):
     def post(self, request, category_id):  # 'post' should be lowercase
@@ -110,16 +113,22 @@ class RetrieveEvent(APIView):
 
     def get(self, request):
         events = Event.objects.all().order_by('-id')
-        serializer = EventRetrieveSerializer(events, many=True, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_events = paginator.paginate_queryset(events, request)
+        serializer = EventRetrieveSerializer(paginated_events, many=True, context={'request': request})
+        return paginator.get_paginated_response(serializer.data)
 
 class MyRetrieveEvent(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         events = Event.objects.filter(posted_by=request.user).order_by('-id')
-        serializer = EventRetrieveSerializer(events, many=True, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_events = paginator.paginate_queryset(events, request)
+        serializer = EventRetrieveSerializer(paginated_events, many=True, context={'request': request})
+        return paginator.get_paginated_response(serializer.data)
     
 class UpdateEvent(APIView):
     # permission_classes = [IsAuthenticated]
@@ -192,8 +201,11 @@ class ActiveEvent(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
         events = Event.objects.filter(is_active=True).order_by('-id')
-        serializer = EventActiveRetrieveSerializer(events, many=True, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_events = paginator.paginate_queryset(events, request)
+        serializer = EventActiveRetrieveSerializer(paginated_events, many=True, context={'request': request})
+        return paginator.get_paginated_response(serializer.data)
     
 # retrieve question
 class RecommendedQuestions(APIView):
@@ -209,43 +221,50 @@ class EventByCategory(APIView):
 
     def post(self, request):
         category_id = request.data.get('category_id')
-        
-        today = timezone.now().date()  
-        
+        today = timezone.now().date()
+
         if category_id:
             events = Event.objects.filter(
                 category_id=category_id,
                 is_active=True,
-                start_date__gte=today 
+                start_date__gte=today
             ).order_by('-id')
         else:
             events = Event.objects.filter(
                 is_active=True,
-                start_date__gte=today  
+                start_date__gte=today
             ).order_by('-id')
-        
-        serializer = EventRetrieveSerializer(events, many=True, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
+
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_events = paginator.paginate_queryset(events, request)
+        serializer = EventRetrieveSerializer(paginated_events, many=True, context={'request': request})
+        return paginator.get_paginated_response(serializer.data)
 
 class PastEventByCategory(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         category_id = request.data.get('category_id')
-        today = timezone.now().date()  
+        today = timezone.now().date()
+        
         if category_id:
             events = Event.objects.filter(
                 category_id=category_id,
                 is_active=True,
-                start_date__lt=today 
+                start_date__lt=today
             ).order_by('-id')
         else:
             events = Event.objects.filter(
                 is_active=True,
-                start_date__lt=today  
+                start_date__lt=today
             ).order_by('-id')
-        serializer = EventRetrieveSerializer(events, many=True, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_events = paginator.paginate_queryset(events, request)
+        serializer = EventRetrieveSerializer(paginated_events, many=True, context={'request': request})
+        return paginator.get_paginated_response(serializer.data)
 
 # manage question
 # Create question
@@ -272,8 +291,11 @@ class QuestionRetrieveView(APIView):
 class QuestionListView(APIView):
     def get(self, request):
         questions = Question.objects.all().order_by('-id')
-        serializer = QuestionSerializer(questions, many=True)
-        return Response(serializer.data)
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_questions = paginator.paginate_queryset(questions, request)
+        serializer = QuestionSerializer(paginated_questions, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
 # Update question
 class QuestionUpdateView(APIView):
@@ -400,9 +422,13 @@ class RetrieveRegisteredEvent(APIView):
         if not registrations.exists():
             return Response({"error": "No registrations found for this event."}, status=status.HTTP_404_NOT_FOUND)
         
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_registrations = paginator.paginate_queryset(registrations, request)
+        
         all_registered_users = []
         
-        for registration in registrations:
+        for registration in paginated_registrations:
             user_data = {
                 "member_id": registration.user.member.id if registration.user.member else None,  
                 "profile_picture": registration.user.member.profile_picture if registration.user.member.profile_picture else None,                
@@ -419,11 +445,11 @@ class RetrieveRegisteredEvent(APIView):
                 })
             all_registered_users.append(user_data)
         
-        return Response({
+        return paginator.get_paginated_response({
             "event_id": event.id,
             "event_title": event.title,
             "registered_users": all_registered_users
-        }, status=status.HTTP_200_OK)
+        })
 
 
 class EmailAttendees(APIView):

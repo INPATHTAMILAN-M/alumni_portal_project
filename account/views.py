@@ -205,8 +205,10 @@ class Users(APIView):
     permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
     def get(self, request):
         users = User.objects.all().order_by('-id')
-        serializer = UserSerializer(users, many=True)
-        return Response(serializer.data)
+        paginator = PageNumberPagination()
+        paginated_users = paginator.paginate_queryset(users, request)
+        serializer = UserSerializer(paginated_users, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
 class Groups(APIView):
     permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
@@ -287,6 +289,8 @@ class DeactivateUser(APIView):
 class ActiveDepartment(APIView):
     def get(self, request):
         departments = Department.objects.filter(is_active=True).order_by('-id')
+        paginator = PageNumberPagination()
+        paginated_departments = paginator.paginate_queryset(departments, request)
         data = [
             {
                 "department_id": department.id,
@@ -294,13 +298,15 @@ class ActiveDepartment(APIView):
                 "full_name": department.full_name,
                 "is_active": department.is_active
             }
-            for department in departments
+            for department in paginated_departments
         ]
-        return Response(data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(data)
 
 class ActiveCourse(APIView):
     def get(self, request):
         courses = Course.objects.filter(is_active=True).order_by('-id')
+        paginator = PageNumberPagination()
+        paginated_courses = paginator.paginate_queryset(courses, request)
         data = [
             {
                 "course_id": course.id,
@@ -309,9 +315,9 @@ class ActiveCourse(APIView):
                 "department": course.department.full_name,
                 "is_active": course.is_active
             }
-            for course in courses
+            for course in paginated_courses
         ]
-        return Response(data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(data)
 
 
 # Manage Salutation
@@ -329,15 +335,17 @@ class CreateSalutation(APIView):
 class RetrieveSalutation(APIView):
     def get(self, request):
         salutations = Salutation.objects.all().order_by('-id')
+        paginator = PageNumberPagination()
+        paginated_salutations = paginator.paginate_queryset(salutations, request)
         data = [
             {
                 "salutation_id": salutation.id,
                 "salutation_name": salutation.salutation,
                 "description": salutation.description,
             }
-            for salutation in salutations
+            for salutation in paginated_salutations
         ]
-        return Response(data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(data)
 
 class UpdateSalutation(APIView):
     permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
@@ -381,6 +389,8 @@ class CreateBatch(APIView):
 class RetrieveBatch(APIView):
     def get(self, request):
         batches = Batch.objects.all().order_by('-id')
+        paginator = PageNumberPagination()
+        paginated_batches = paginator.paginate_queryset(batches, request)
         data = [
             {
                 "batch_id": batch.id,
@@ -388,9 +398,9 @@ class RetrieveBatch(APIView):
                 "start_year": batch.start_year,
                 "end_year": batch.end_year
             }
-            for batch in batches
+            for batch in paginated_batches
         ]
-        return Response(data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(data)
 
 class UpdateBatch(APIView):
     permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
@@ -437,6 +447,8 @@ class RetrieveDepartment(APIView):
 
     def get(self, request):
         departments = Department.objects.all().order_by('-id')
+        paginator = PageNumberPagination()
+        paginated_departments = paginator.paginate_queryset(departments, request)
         data = [
             {
                 "department_id": department.id,
@@ -444,9 +456,9 @@ class RetrieveDepartment(APIView):
                 "full_name": department.full_name,
                 "is_active": department.is_active
             }
-            for department in departments
+            for department in paginated_departments
         ]
-        return Response(data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(data)
 
 class UpdateDepartment(APIView):
     permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
@@ -509,6 +521,8 @@ class CreateCourse(APIView):
 class RetrieveCourse(APIView):
     def get(self, request):
         courses = Course.objects.all().order_by('-id')
+        paginator = PageNumberPagination()
+        paginated_courses = paginator.paginate_queryset(courses, request)
         data = [
             {
                 "course_id": course.id,
@@ -518,9 +532,9 @@ class RetrieveCourse(APIView):
                 "department_id": course.department.id,
                 "is_active": course.is_active
             }
-            for course in courses
+            for course in paginated_courses
         ]
-        return Response(data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(data)
 
 class UpdateCourse(APIView):
     permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
@@ -583,8 +597,10 @@ class CreateInstitution(APIView):
 class RetrieveInstitution(APIView):
     def get(self, request):
         institutions = Institution.objects.all().order_by('-id')
-        data = [{"id": inst.id, "title": inst.title, "description": inst.description} for inst in institutions]
-        return Response(data, status=status.HTTP_200_OK)
+        paginator = PageNumberPagination()
+        paginated_institutions = paginator.paginate_queryset(institutions, request)
+        data = [{"id": inst.id, "title": inst.title, "description": inst.description} for inst in paginated_institutions]
+        return paginator.get_paginated_response(data)
 
 class UpdateInstitution(APIView):
     permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
@@ -630,6 +646,8 @@ class CreateSocialMedia(APIView):
 class RetrieveSocialMedia(APIView):
     def get(self, request):
         social_media_entries = Social_Media.objects.all().order_by('-id')
+        paginator = PageNumberPagination()
+        paginated_entries = paginator.paginate_queryset(social_media_entries, request)
         data = [
             {
                 "id": sm.id,
@@ -638,9 +656,9 @@ class RetrieveSocialMedia(APIView):
                 "url": sm.url,
                 "is_active": sm.is_active
             }
-            for sm in social_media_entries
+            for sm in paginated_entries
         ]
-        return Response(data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(data)
 
 
 class UpdateSocialMedia(APIView):
@@ -701,8 +719,10 @@ class CreateRole(APIView):
 class RetrieveRoles(APIView):
     def get(self, request):
         roles = Role.objects.all().order_by('-id')
-        data = [{"id": role.id, "role": role.role, "description": role.description} for role in roles]
-        return Response(data, status=status.HTTP_200_OK)
+        paginator = PageNumberPagination()
+        paginated_roles = paginator.paginate_queryset(roles, request)
+        data = [{"id": role.id, "role": role.role, "description": role.description} for role in paginated_roles]
+        return paginator.get_paginated_response(data)
 
 class UpdateRole(APIView):
     permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
@@ -746,8 +766,10 @@ class CreateIndustry(APIView):
 class RetrieveIndustry(APIView):
     def get(self, request):
         industries = Industry.objects.all().order_by('-id')
-        data = [{"id": ind.id, "title": ind.title, "description": ind.description, "website": ind.website} for ind in industries]
-        return Response(data, status=status.HTTP_200_OK)
+        paginator = PageNumberPagination()
+        paginated_industries = paginator.paginate_queryset(industries, request)
+        data = [{"id": ind.id, "title": ind.title, "description": ind.description, "website": ind.website} for ind in paginated_industries]
+        return paginator.get_paginated_response(data)
 
 class UpdateIndustry(APIView):
     permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
@@ -788,9 +810,11 @@ class CreateLocation(APIView):
 
 class RetrieveLocation(APIView):
     def get(self, request):
-        locations = Location.objects.all()
-        data = [{"id": loc.id, "location": loc.location} for loc in locations]
-        return Response(data, status=status.HTTP_200_OK)
+        locations = Location.objects.all().order_by('-id')
+        paginator = PageNumberPagination()
+        paginated_locations = paginator.paginate_queryset(locations, request)
+        data = [{"id": loc.id, "location": loc.location} for loc in paginated_locations]
+        return paginator.get_paginated_response(data)
 
 class UpdateLocation(APIView):
     permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
@@ -831,9 +855,11 @@ class CreateCountry(APIView):
 
 class RetrieveCountry(APIView):
     def get(self, request):
-        countries = Country.objects.all()
-        data = [{"id": country.id, "country_name": country.country_name, "country_code": country.country_code} for country in countries]
-        return Response(data, status=status.HTTP_200_OK)
+        countries = Country.objects.all().order_by('-id')
+        paginator = PageNumberPagination()
+        paginated_countries = paginator.paginate_queryset(countries, request)
+        data = [{"id": country.id, "country_name": country.country_name, "country_code": country.country_code} for country in paginated_countries]
+        return paginator.get_paginated_response(data)
 
 class UpdateCountry(APIView):
     permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
@@ -1002,10 +1028,12 @@ class PendingMembers(APIView):
     # permission_classes = [IsAuthenticated]
     def get(self, request):
         # Extract data from the JSON body
-        members = Member.objects.filter(is_approve=False)
-        data = []
+        members = Member.objects.filter(is_approve=False).order_by('-id')
+        paginator = PageNumberPagination()
+        paginated_members = paginator.paginate_queryset(members, request)
         
-        for member in members:
+        data = []
+        for member in paginated_members:
             data.append({
                 'member_id': member.id,
                 'register_no': member.register_no,
@@ -1015,10 +1043,9 @@ class PendingMembers(APIView):
                 'batch': member.batch.title if member.batch else None,
                 'course': member.course.title if member.course else None,
                 'file': request.build_absolute_uri(member.file.url) if member.file else None,
-                
             })
         
-        return Response(data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(data)
 
 class ApproveMember(APIView):
     permission_classes = [IsAuthenticated]  # Uncomment if authentication is required
@@ -1556,15 +1583,17 @@ class CreateSkill(APIView):
 class RetrieveSkill(APIView):
     def get(self, request):
         skills = Skill.objects.all().order_by('-id')
+        paginator = PageNumberPagination()
+        paginated_skills = paginator.paginate_queryset(skills, request)
         data = [
             {
                 "skill_id": skill.id,
                 "skill": skill.skill,
                 "description": skill.description
             }
-            for skill in skills
+            for skill in paginated_skills
         ]
-        return Response(data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(data)
 
 class UpdateSkill(APIView):
     permission_classes = [IsAuthenticated,IsAlumniManagerOrAdministrator]
@@ -1724,17 +1753,19 @@ class CreateMemberSkill(APIView):
 
 class RetrieveMemberSkills(APIView):
     permission_classes = [IsAuthenticated]
-    def get(self, request,member_id):
+    def get(self, request, member_id):
         member_skills = Member_Skills.objects.filter(member_id=member_id)
+        paginator = PageNumberPagination()
+        paginated_skills = paginator.paginate_queryset(member_skills, request)
         data = [
             {
                 "skill_id": member_skill.skill.id,
                 "member_skill_id": member_skill.id,
-                "skill_name":member_skill.skill.skill
+                "skill_name": member_skill.skill.skill
             }
-            for member_skill in member_skills
+            for member_skill in paginated_skills
         ]
-        return Response(data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(data)
 
 class UpdateMemberSkill(APIView):
     permission_classes = [IsAuthenticated]
@@ -1794,9 +1825,11 @@ class RetrieveMemberEducation(APIView):
 
     def get(self, request, member_id):
         education_records = Member_Education.objects.filter(member_id=member_id)
+        paginator = PageNumberPagination()
+        paginated_education = paginator.paginate_queryset(education_records, request)
         data = []
 
-        for record in education_records:
+        for record in paginated_education:
             data.append({
                 'id': record.id,
                 'institute': record.institute.title,  # Assuming institute has a 'name' field
@@ -1807,7 +1840,7 @@ class RetrieveMemberEducation(APIView):
                 'location': record.location.location if record.location else None  # Assuming location has a 'name' field
             })
 
-        return Response(data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(data)
 
 class UpdateMemberEducation(APIView):
     permission_classes = [IsAuthenticated]
@@ -1870,22 +1903,24 @@ class RetrieveMemberExperience(APIView):
 
     def get(self, request, member_id):
         experience_records = Member_Experience.objects.filter(member_id=member_id)
+        paginator = PageNumberPagination()
+        paginated_experiences = paginator.paginate_queryset(experience_records, request)
 
         # Convert the queryset to a list of dictionaries
         experience_list = [
             {
                 'id': exp.id,
-                'industry': exp.industry.title,  
-                'role': exp.role.role if exp.role else None,  
+                'industry': exp.industry.title,
+                'role': exp.role.role if exp.role else None,
                 'start_date': exp.start_date,
                 'end_date': exp.end_date,
                 'is_currently_working': exp.is_currently_working,
-                'location': exp.location.location  
+                'location': exp.location.location if exp.location else None
             }
-            for exp in experience_records
+            for exp in paginated_experiences
         ]
 
-        return Response(experience_list, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(experience_list)
 
 class UpdateMemberExperience(APIView):
     permission_classes = [IsAuthenticated]  # Uncomment if you want authentication

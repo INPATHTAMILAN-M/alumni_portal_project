@@ -25,6 +25,7 @@ from .permissions import *
 from django.db.models import Q
 from rest_framework import status
 from django.db.models import Sum
+from rest_framework.pagination import PageNumberPagination
 
 
 class Login(APIView):
@@ -2081,8 +2082,13 @@ class MemberListView(APIView):
 
     def get(self, request):
         members = Member.objects.all().order_by('-id')
+
+        # Setup paginator
+        paginator = PageNumberPagination()
+        paginated_members = paginator.paginate_queryset(members, request)
+
         response_data = []
-        for member in members:
+        for member in paginated_members:
             alumni_data = None
             if member.alumni.exists():
                 alumni = member.alumni.first()
@@ -2103,7 +2109,7 @@ class MemberListView(APIView):
             }
             response_data.append(member_data)
 
-        return Response(response_data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(response_data)
     
 # get latest member
 class LatestMembers(APIView):
@@ -2208,12 +2214,15 @@ class MemberFilterView(APIView):
         queryset = Member.objects.prefetch_related(
             'skills', 'education', 'experience', 'alumni', 
             'experience__industry', 'experience__role'
-        ).filter(filters)
+        ).filter(filters).order_by('-id')  # Ordering for consistency
 
-        # Serialize the filtered data
+        # PAGINATE
+        paginator = PageNumberPagination()
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+
+        # Serialize the filtered paginated data
         response_data = []
-        for member in queryset:
-            # Fetch alumni data if it exists
+        for member in paginated_queryset:
             alumni_data = None
             if member.alumni.exists():
                 alumni = member.alumni.first()
@@ -2226,7 +2235,6 @@ class MemberFilterView(APIView):
                     'postal_code': alumni.postal_code,
                 }
 
-            # Construct member data
             full_name = f"{member.user.first_name} {member.user.last_name}" if member.user else None
             member_data = {
                 'id': member.id,
@@ -2237,10 +2245,11 @@ class MemberFilterView(APIView):
                 'profile_picture': request.build_absolute_uri(member.profile_picture.url) if member.profile_picture else None,
                 'alumni': alumni_data,
             }
-
             response_data.append(member_data)
 
-        return Response(response_data, status=status.HTTP_200_OK)
+        # Return paginated response
+        return paginator.get_paginated_response(response_data)
+
 
 # detail in member
 class MemberDetailView(APIView):

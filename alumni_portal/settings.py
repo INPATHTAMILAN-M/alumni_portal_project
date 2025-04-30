@@ -32,7 +32,7 @@ SECRET_KEY = "django-insecure-(=0*z*=ot8x9#as+9lj77d!98z%!0@=6v#&cs!n(33xr_vww)n
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['alumnib.decodeschool.com','127.0.0.1']
+ALLOWED_HOSTS = ['alumnib.decodeschool.com','127.0.0.1','r97smzp6-8000.inc1.devtunnels.ms']
 
 
 # Application definition
@@ -70,6 +70,8 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,  # Customize page size
 }
 
 SIMPLE_JWT = {

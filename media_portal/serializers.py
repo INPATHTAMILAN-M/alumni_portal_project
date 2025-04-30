@@ -102,7 +102,7 @@ class PostSerializer(serializers.ModelSerializer):
     posted_by = serializers.SerializerMethodField()
     post_liked = serializers.SerializerMethodField()
     post_category = serializers.SerializerMethodField()
-    member_id = serializers.IntegerField(source='posted_by.member.id', read_only=True)
+    member_id = serializers.SerializerMethodField()
     profile_photo = serializers.SerializerMethodField()
 
     class Meta:
@@ -127,7 +127,7 @@ class PostSerializer(serializers.ModelSerializer):
     def get_member_id(self, obj):
         try:
             return obj.posted_by.member.id
-        except Member.DoesNotExist:
+        except (Member.DoesNotExist, AttributeError):
             return None
 
     def get_profile_photo(self, obj):
@@ -136,14 +136,19 @@ class PostSerializer(serializers.ModelSerializer):
             if member.profile_picture:
                 return self.context['request'].build_absolute_uri(member.profile_picture.url)
             return None
-        except Member.DoesNotExist:
+        except (Member.DoesNotExist, AttributeError):
             return None
 
     def get_post_category(self, obj):
-        return {
-            "id": obj.post_category.id,  # Return the ID of the post category
-            "name": obj.post_category.name  # Return the name of the post category
-        }
+        try:
+            if obj.post_category:
+                return {
+                    "id": obj.post_category.id,  # Return the ID of the post category
+                    "name": obj.post_category.name  # Return the name of the post category
+                }
+        except AttributeError:
+            return None  # Return None if post_category is not present
+        return None
 
 
 class MemberBirthdaySerializer(serializers.ModelSerializer):

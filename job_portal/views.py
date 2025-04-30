@@ -12,7 +12,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.db.models import Count
 from account.permissions import *
-
+from rest_framework.pagination import PageNumberPagination
 class CreateJobPost(APIView):
     permission_classes = [IsAuthenticated]
     def post(self, request):
@@ -54,19 +54,20 @@ class RetrieveJobPost(APIView):
     def get(self, request):
         job_posts = JobPost.objects.filter(is_active=True)
         
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_job_posts = paginator.paginate_queryset(job_posts, request)
+
         # Manually create a list of job post data
         job_posts_data = []
-        for job in job_posts:
+        for job in paginated_job_posts:
             job_posts_data.append({
                 'id': job.id,
                 'posted_by': job.posted_by.username, 
                 'job_title': job.job_title,
                 'industry': job.industry.title, 
-                # 'experience_level_from': job.experience_level_from,
-                # 'experience_level_to': job.experience_level_to,
                 'location': job.location,
-                # 'contact_email': job.contact_email,
-                # 'contact_link': job.contact_link,
                 'role': job.role.role,  # Adjust based on your Role model
                 'skills': [skill.skill for skill in job.skills.all()],  # List of skill names
                 'salary_package': job.salary_package,
@@ -75,10 +76,9 @@ class RetrieveJobPost(APIView):
                 'file': request.build_absolute_uri(job.file.url) if job.file else None,
                 'post_type': job.post_type,
                 'posted_on': job.posted_on,
-                # 'is_active': job.is_active,
             })
 
-        return Response(job_posts_data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(job_posts_data)
 
 class LatestJobPost(APIView):
     # permission_classes = [IsAuthenticated]
@@ -146,14 +146,19 @@ class MainRetrieveJobPost(APIView):
         return Response(job_posts_data, status=status.HTTP_200_OK)
     
 class MyJobPost(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request):
         try:
             job_posts = JobPost.objects.filter(posted_by=request.user).annotate(application_count=Count('application')).order_by('-id')
 
+            # Apply pagination
+            paginator = PageNumberPagination()
+            paginator.page_size = 10  # Set the number of items per page
+            paginated_job_posts = paginator.paginate_queryset(job_posts, request)
+
             job_posts_data = []
-            for job in job_posts:
+            for job in paginated_job_posts:
                 job_posts_data.append({
                     'id': job.id,
                     'job_title': job.job_title,
@@ -167,7 +172,7 @@ class MyJobPost(APIView):
                     'is_active': job.is_active,
                 })
 
-            return Response(job_posts_data, status=status.HTTP_200_OK)
+            return paginator.get_paginated_response(job_posts_data)
         except JobPost.DoesNotExist:
             return Response({"message": "Job post not found"}, status=status.HTTP_404_NOT_FOUND)
                         

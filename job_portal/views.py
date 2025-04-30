@@ -245,6 +245,7 @@ class DetailJobPost(APIView):
                     'job_description': job.job_description,
                     'file': request.build_absolute_uri(job.file.url) if job.file else None,
                     'posted_on': job.posted_on,
+                    'post_type': job.post_type,
                 }
 
             return Response(job_posts_data, status=status.HTTP_200_OK)

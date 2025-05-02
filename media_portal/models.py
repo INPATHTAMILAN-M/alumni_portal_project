@@ -98,9 +98,9 @@ class MemoryComment(models.Model):
     comment = models.TextField()
 
 class MemoryTags(models.Model):
-    memory = models.ForeignKey(Memories, on_delete=models.CASCADE)
+    memory = models.ForeignKey(Memories, on_delete=models.CASCADE,related_name='memorytags')
     tag = models.CharField(max_length=55)
 
 class MemoryPhotos(models.Model):
-    memory = models.ForeignKey(Memories, on_delete=models.CASCADE)
+    memory = models.ForeignKey(Memories, on_delete=models.CASCADE,related_name='memoryphoto')
     photo = models.ImageField(upload_to='memories/photos/')

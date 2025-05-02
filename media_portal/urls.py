@@ -1,6 +1,7 @@
 from django.urls import path,include
 from rest_framework.routers import DefaultRouter
 from .views import *
+# from .views import AlbumDetailView
 
 router = DefaultRouter()
 router.register(r'postcategory',PostCategoryViewSet)
@@ -41,14 +42,14 @@ path('albums/<int:album_id>/', AlbumView.as_view(), name='album_detail'),
 path('updatealbum/<int:album_id>/', AlbumView.as_view(), name='update_album'),
 path('delete/photos/<int:photo_id>/', AlbumView.as_view(), name='delete_photo'),
 path('delete/albums/<int:album_id>/', AlbumView.as_view(), name='delete_album'),
-path('album/approved/<int:album_id>/', AlbumDetailView.as_view(), name='approved_album'),
+path('album/approved/<int:album_id>/', AlbumDetailView.as_view(), name='approved_album_detail'),
 path('approvedalbums/', AlbumDetailView.as_view(), name='approved_albums'),
 path('album/photos/<int:photo_id>/approve/', AlbumDetailView.as_view(), name='approve_album_photo'),
 path('albums/unapprovedphotos/', AlbumsWithUnapprovedPhotosView.as_view(), name='albums_unapproved_photos'),
 
 # manage memories
 path('creatememories/', MemoryView.as_view(), name='create_memories'),
-path('memories/<int:memory_id>/', MemoryView.as_view(), name='memories'),
+path('memories/<int:memory_id>/', MemoryView.as_view(), name='update_memories'),
 path('memories/', MemoryView.as_view(), name='retrieve_memories'),
 path('memories/approved/', ApprovedMemoriesView.as_view(), name='approved-memories'),
 path('memories/pending/', PendingMemoriesView.as_view(), name='pending-memories'),

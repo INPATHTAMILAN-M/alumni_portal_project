@@ -15,7 +15,7 @@ from django.conf import settings
 from datetime import date
 from django.db.models import Q
 from rest_framework.pagination import PageNumberPagination
-
+from django.db.models import Q, OuterRef, Subquery, Count
 class PostCategoryViewSet(viewsets.ModelViewSet):
     queryset = PostCategory.objects.all()
     serializer_class = PostCategorySerializer
@@ -449,13 +449,16 @@ class AlbumView(APIView):
             except Album.DoesNotExist:
                 return Response({"message": "Album not found."}, status=status.HTTP_404_NOT_FOUND)
         else:
-            albums = Album.objects.all()
-            serialized_albums = AlbumSerializer(albums, many=True, context={'request': request}).data
+            albums = Album.objects.filter(created_by=request.user).order_by('-created_on')
+            paginator = PageNumberPagination()
+            paginator.page_size = 10  # Set the number of items per page
+            paginated_albums = paginator.paginate_queryset(albums, request)
+            serialized_albums = AlbumSerializer(paginated_albums, many=True, context={'request': request}).data
             for album in serialized_albums:
                 album_instance = Album.objects.get(id=album['id'])
                 album['created_on'] = album_instance.created_on
                 album['created_by'] = album_instance.created_by.username
-            return Response(serialized_albums, status=status.HTTP_200_OK)
+            return paginator.get_paginated_response(serialized_albums)
         
 
     def patch(self, request, album_id):
@@ -524,34 +527,16 @@ class AlbumView(APIView):
         
 class AlbumDetailView(APIView):
 
-    def get(self, request, album_id):
-        album = get_object_or_404(Album, id=album_id)
+    def get(self, request, album_id=None):
+        if album_id:
+            album = get_object_or_404(Album, id=album_id)
 
-        album_data = AlbumSerializer(album).data
-
-        approved_photos = AlbumPhotos.objects.filter(album=album, approved=True).order_by('-id')
-        photo_urls = [request.build_absolute_uri(photo.photo.url) for photo in approved_photos]
-
-        album_data['photos'] = [
-            {
-                "id": photo.id,
-                "photo": request.build_absolute_uri(photo.photo.url),
-                "uploaded_on": photo.uploaded_on,
-            }
-            for photo in approved_photos
-        ]
-
-        return Response(album_data, status=status.HTTP_200_OK)
-    
-    def get(self, request):
-        albums = Album.objects.all()
-        response_data = []
-
-        for album in albums:
-            serialized_album = AlbumSerializer(album).data
+            album_data = AlbumSerializer(album).data
 
             approved_photos = AlbumPhotos.objects.filter(album=album, approved=True).order_by('-id')
-            serialized_album['photos'] = [
+            photo_urls = [request.build_absolute_uri(photo.photo.url) for photo in approved_photos]
+
+            album_data['photos'] = [
                 {
                     "id": photo.id,
                     "photo": request.build_absolute_uri(photo.photo.url),
@@ -560,10 +545,31 @@ class AlbumDetailView(APIView):
                 for photo in approved_photos
             ]
 
-            response_data.append(serialized_album)
+            return Response(album_data, status=status.HTTP_200_OK)
+        else:
+            albums = Album.objects.all()
+            paginator = PageNumberPagination()
+            paginator.page_size = 10  # Set the number of items per page
+            paginated_albums = paginator.paginate_queryset(albums, request)
 
-        return Response(response_data, status=status.HTTP_200_OK)
-    
+            response_data = []
+            for album in paginated_albums:
+                serialized_album = AlbumSerializer(album).data
+
+                approved_photos = AlbumPhotos.objects.filter(album=album, approved=True).order_by('-id')
+                serialized_album['photos'] = [
+                    {
+                        "id": photo.id,
+                        "photo": request.build_absolute_uri(photo.photo.url),
+                        "uploaded_on": photo.uploaded_on,
+                    }
+                    for photo in approved_photos
+                ]
+
+                response_data.append(serialized_album)
+
+            return paginator.get_paginated_response(response_data)
+        
     def post(self, request, photo_id):
         try:
             photo = AlbumPhotos.objects.get(id=photo_id)
@@ -580,17 +586,29 @@ class AlbumDetailView(APIView):
     
 class AlbumsWithUnapprovedPhotosView(APIView):
     def get(self, request):
-        albums = Album.objects.all()
+        albums = Album.objects.annotate(
+            unapproved_photo_count=Subquery(
+                AlbumPhotos.objects.filter(album_id=OuterRef('id'), approved=False)
+                .values('album_id')
+                .annotate(count=Count('id'))
+                .values('count')[:1]
+            )
+        ).filter(unapproved_photo_count__gt=0)
+
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_albums = paginator.paginate_queryset(albums, request)
+
         response_data = []
 
-        for album in albums:
+        for album in paginated_albums:
             serialized_album = AlbumSerializer(album).data
             
             unapproved_photos = AlbumPhotos.objects.filter(album=album, approved=False)
             serialized_photos = [
                 {
                     "id": photo.id,
-                    "photo": photo.photo.url,  
+                    "photo": request.build_absolute_uri(photo.photo.url),  
                     "uploaded_on": photo.uploaded_on,
                     "approved": photo.approved
                 }
@@ -601,7 +619,7 @@ class AlbumsWithUnapprovedPhotosView(APIView):
             
             response_data.append(serialized_album)
 
-        return Response(response_data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(response_data)
 
 class MemoryView(APIView):
     permission_classes = [IsAuthenticated]
@@ -651,7 +669,7 @@ class MemoryView(APIView):
         if memory_id:
             try:
                 memory = Memories.objects.get(id=memory_id)
-                memory_data = MemorySerializer(memory).data
+                memory_data = MemorySerializer(memory, context=self.get_serializer_context()).data
                 memory_data['created_by'] = memory.created_by.username
                 memory_data['tags'] = [
                     tag.tag for tag in MemoryTags.objects.filter(memory=memory)
@@ -665,9 +683,13 @@ class MemoryView(APIView):
                 return Response({"message": "Memory not found."}, status=status.HTTP_404_NOT_FOUND)
         else:
             memories = Memories.objects.all()
+            paginator = PageNumberPagination()
+            paginator.page_size = 10  # Set the number of items per page
+            paginated_memories = paginator.paginate_queryset(memories, request)
+
             all_memories_data = []
-            for memory in memories:
-                memory_data = MemorySerializer(memory).data
+            for memory in paginated_memories:
+                memory_data = MemorySerializer(memory, context=self.get_serializer_context()).data
                 memory_data['created_by'] = memory.created_by.username
                 memory_data['tags'] = [
                     tag.tag for tag in MemoryTags.objects.filter(memory=memory)
@@ -677,7 +699,11 @@ class MemoryView(APIView):
                     for photo in MemoryPhotos.objects.filter(memory=memory)
                 ]
                 all_memories_data.append(memory_data)
-            return Response(all_memories_data, status=status.HTTP_200_OK)
+
+            return paginator.get_paginated_response(all_memories_data)
+
+    def get_serializer_context(self):
+        return {'request': self.request}
         
 
     def patch(self, request, memory_id):
@@ -762,12 +788,18 @@ class ApprovedMemoriesView(APIView):
     
     def get(self, request):
         approved_memories = Memories.objects.filter(approved=True).order_by('-id')
-        serialized_memories = MemorySerializer(approved_memories, many=True)
-        return Response(serialized_memories.data, status=status.HTTP_200_OK)
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_memories = paginator.paginate_queryset(approved_memories, request)
+        serialized_memories = MemorySerializer(paginated_memories, many=True, context={'request': request})
+        return paginator.get_paginated_response(serialized_memories.data)
 
 class PendingMemoriesView(APIView):
    
     def get(self, request):
         pending_memories = Memories.objects.filter(approved=False)
-        serialized_memories = MemorySerializer(pending_memories, many=True)
-        return Response(serialized_memories.data, status=status.HTTP_200_OK)
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_memories = paginator.paginate_queryset(pending_memories, request)
+        serialized_memories = MemorySerializer(paginated_memories, many=True,context={'request': request})
+        return paginator.get_paginated_response(serialized_memories.data)

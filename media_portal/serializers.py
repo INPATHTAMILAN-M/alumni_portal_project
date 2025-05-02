@@ -205,25 +205,42 @@ class AlbumSerializer(serializers.ModelSerializer):
         fields = ['id', 'album_name', 'description', 'album_location', 'album_date', 
                   'public_view', 'created_on', 'created_by', 'photos']
         
-
 class MemoryTagsSerializer(serializers.ModelSerializer):
     class Meta:
         model = MemoryTags
-        fields = ['tag']
+        fields = ['id', 'tag']
 
 class MemoryPhotosSerializer(serializers.ModelSerializer):
+    photo = serializers.SerializerMethodField()
+
     class Meta:
         model = MemoryPhotos
-        fields = ['photo']
+        fields = ['id', 'photo']
+
+    def get_photo(self, obj):
+        """
+        Method to get the absolute URL for the photo.
+        """
+        if obj.photo:
+            return self.context['request'].build_absolute_uri(obj.photo.url)
+        return None
 
 class MemorySerializer(serializers.ModelSerializer):
-    tags = MemoryTagsSerializer(many=True, write_only=True)
-    photos = MemoryPhotosSerializer(many=True, write_only=True)
+    tags = MemoryTagsSerializer(many=True, read_only=True, source='memorytags')  # Use related_name for source
+    photos = serializers.SerializerMethodField()
 
     class Meta:
         model = Memories
         fields = ['id', 'year', 'month', 'approved', 'tags', 'photos']
         read_only_fields = ['approved']
+        
+    
+    def get_photos(self, obj):
+        """
+        Method to get the absolute URL for the photos.
+        """
+        photos = obj.memoryphoto.all()
+        return MemoryPhotosSerializer(photos, many=True, context=self.context).data
 
     def create(self, validated_data):
         tags_data = validated_data.pop('tags', [])

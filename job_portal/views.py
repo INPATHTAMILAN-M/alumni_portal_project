@@ -172,13 +172,16 @@ class MyJobPost(APIView):
                 job_posts_data.append({
                     'id': job.id,
                     'job_title': job.job_title,
-                    'industry': job.industry.title,  # Adjust based on your Industry model
+                    'industry': job.industry.title,
                     'location': job.location,
-                    'role': job.role.role,  # Adjust based on your Role model
+                    'role': {'id': job.role.id, 'role': job.role.role},  # Include role ID and name
+                    'description': job.job_description,
                     'salary_package': job.salary_package,
                     'file': request.build_absolute_uri(job.file.url) if job.file else None,
+                    'skills': [{'id': skill.id, 'skill': skill.skill} for skill in job.skills.all()],  # List of skill IDs and names
                     'posted_on': job.posted_on,
                     'application_count': job.application_count,  # Number of applications for this job post
+                    'post_type': job.post_type,
                     'is_active': job.is_active,
                 })
 

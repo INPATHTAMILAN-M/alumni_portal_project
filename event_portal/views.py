@@ -206,7 +206,16 @@ class ActiveEvent(APIView):
         paginated_events = paginator.paginate_queryset(events, request)
         serializer = EventActiveRetrieveSerializer(paginated_events, many=True, context={'request': request})
         return paginator.get_paginated_response(serializer.data)
-    
+
+class DetailEvent(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request,event_id):
+            try:
+                event = Event.objects.get(id=event_id)
+                serializer = EventActiveRetrieveSerializer(event, context={'request': request})
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            except Event.DoesNotExist:
+                return Response({"message": "Event not found"}, status=status.HTTP_404_NOT_FOUND)
 # retrieve question
 class RecommendedQuestions(APIView):
     permission_classes = [IsAuthenticated]

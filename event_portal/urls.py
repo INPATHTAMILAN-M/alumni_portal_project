@@ -15,6 +15,7 @@ urlpatterns = [
     path('update_event/<int:event_id>/', UpdateEvent.as_view(), name='update_event'),
     path('inactive_event/<int:event_id>/', DeactivateEvent.as_view(), name='inactive_event'),
     path('active_event/', ActiveEvent.as_view(), name='active_event'),
+    path('detail_event/<int:event_id>/', DetailEvent.as_view(), name='event_detail'),
     
     # manage question
     path('question_list/', QuestionListView.as_view(), name='question_list'), 

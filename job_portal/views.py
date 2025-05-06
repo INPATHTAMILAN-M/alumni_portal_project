@@ -64,19 +64,23 @@ class RetrieveJobPost(APIView):
         for job in paginated_job_posts:
             job_posts_data.append({
                 'id': job.id,
-                'posted_by': job.posted_by.username, 
+                'posted_by': job.posted_by.username,  # Assuming User has a username field
                 'job_title': job.job_title,
-                'industry': job.industry.title, 
+                'industry': job.industry.title,  # Adjust based on your Industry model
+                'experience_level_from': job.experience_level_from,
+                'experience_level_to': job.experience_level_to,
                 'location': job.location,
+                'contact_email': job.contact_email,
+                'contact_link': job.contact_link,
                 'role': job.role.role,  # Adjust based on your Role model
                 'skills': [skill.skill for skill in job.skills.all()],  # List of skill names
                 'salary_package': job.salary_package,
                 'dead_line': job.dead_line,
                 'job_description': job.job_description,
                 'file': request.build_absolute_uri(job.file.url) if job.file else None,
-                'contact_link': job.contact_link,
                 'post_type': job.post_type,
                 'posted_on': job.posted_on,
+                'is_active': job.is_active,
             })
 
         return paginator.get_paginated_response(job_posts_data)
@@ -97,14 +101,14 @@ class LatestJobPost(APIView):
         for job in paginated_job_posts:
             job_posts_data.append({
                 'id': job.id,
-                'posted_by': job.posted_by.username, 
+                'posted_by': job.posted_by.username,  # Assuming User has a username field
                 'job_title': job.job_title,
-                'industry': job.industry.title, 
-                # 'experience_level_from': job.experience_level_from,
-                # 'experience_level_to': job.experience_level_to,
+                'industry': job.industry.title,  # Adjust based on your Industry model
+                'experience_level_from': job.experience_level_from,
+                'experience_level_to': job.experience_level_to,
                 'location': job.location,
-                # 'contact_email': job.contact_email,
-                # 'contact_link': job.contact_link,
+                'contact_email': job.contact_email,
+                'contact_link': job.contact_link,
                 'role': job.role.role,  # Adjust based on your Role model
                 'skills': [skill.skill for skill in job.skills.all()],  # List of skill names
                 'salary_package': job.salary_package,
@@ -113,7 +117,7 @@ class LatestJobPost(APIView):
                 'file': request.build_absolute_uri(job.file.url) if job.file else None,
                 'post_type': job.post_type,
                 'posted_on': job.posted_on,
-                # 'is_active': job.is_active,
+                'is_active': job.is_active,
             })
 
         return paginator.get_paginated_response(job_posts_data)
@@ -134,21 +138,21 @@ class MainRetrieveJobPost(APIView):
         for job in paginated_job_posts:
             job_posts_data.append({
                 'id': job.id,
-                # 'posted_by': job.posted_by.username,  # Assuming User has a username field
+                'posted_by': job.posted_by.username,  # Assuming User has a username field
                 'job_title': job.job_title,
                 'industry': job.industry.title,  # Adjust based on your Industry model
-                # 'experience_level_from': job.experience_level_from,
-                # 'experience_level_to': job.experience_level_to,
+                'experience_level_from': job.experience_level_from,
+                'experience_level_to': job.experience_level_to,
                 'location': job.location,
-                # 'contact_email': job.contact_email,
-                # 'contact_link': job.contact_link,
+                'contact_email': job.contact_email,
+                'contact_link': job.contact_link,
                 'role': job.role.role,  # Adjust based on your Role model
-                # 'skills': [skill.skill for skill in job.skills.all()],  # List of skill names
+                'skills': [skill.skill for skill in job.skills.all()],  # List of skill names
                 'salary_package': job.salary_package,
-                # 'dead_line': job.dead_line,
-                # 'job_description': job.job_description,
+                'dead_line': job.dead_line,
+                'job_description': job.job_description,
                 'file': request.build_absolute_uri(job.file.url) if job.file else None,
-                # 'post_type': job.post_type,
+                'post_type': job.post_type,
                 'posted_on': job.posted_on,
                 'is_active': job.is_active,
                 'application_count': job.application_count,
@@ -172,18 +176,24 @@ class MyJobPost(APIView):
             for job in paginated_job_posts:
                 job_posts_data.append({
                     'id': job.id,
+                    'posted_by': job.posted_by.username,  # Assuming User has a username field
                     'job_title': job.job_title,
-                    'industry': job.industry.title,
+                    'industry': job.industry.title,  # Adjust based on your Industry model
+                    'experience_level_from': job.experience_level_from,
+                    'experience_level_to': job.experience_level_to,
                     'location': job.location,
-                    'role': {'id': job.role.id, 'role': job.role.role},  # Include role ID and name
-                    'description': job.job_description,
+                    'contact_email': job.contact_email,
+                    'contact_link': job.contact_link,
+                    'role': job.role.role,  # Adjust based on your Role model
+                    'skills': [skill.skill for skill in job.skills.all()],  # List of skill names
                     'salary_package': job.salary_package,
+                    'dead_line': job.dead_line,
+                    'job_description': job.job_description,
                     'file': request.build_absolute_uri(job.file.url) if job.file else None,
-                    'skills': [{'id': skill.id, 'skill': skill.skill} for skill in job.skills.all()],  # List of skill IDs and names
-                    'posted_on': job.posted_on,
-                    'application_count': job.application_count,  # Number of applications for this job post
                     'post_type': job.post_type,
+                    'posted_on': job.posted_on,
                     'is_active': job.is_active,
+                    'application_count': job.application_count,
                 })
 
             return paginator.get_paginated_response(job_posts_data)
@@ -248,7 +258,7 @@ class DetailJobPost(APIView):
         # Manually create a list of job post data
            
             job_posts_data={
-                    
+                    'id': job.id,
                     'posted_by': job.posted_by.username,  # Assuming User has a username field
                     'job_title': job.job_title,
                     'industry': job.industry.title,  # Adjust based on your Industry model
@@ -265,6 +275,7 @@ class DetailJobPost(APIView):
                     'file': request.build_absolute_uri(job.file.url) if job.file else None,
                     'posted_on': job.posted_on,
                     'post_type': job.post_type,
+                    'is_active': job.is_active,
                 }
 
             return Response(job_posts_data, status=status.HTTP_200_OK)

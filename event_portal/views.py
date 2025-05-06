@@ -229,46 +229,35 @@ class EventByCategory(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        category_id = request.data.get('category_id')
+        category_id = request.query_params.get('category_id')
         today = timezone.now().date()
+        is_past = request.query_params.get('is_past', 'false').lower() == 'true'
 
         if category_id:
-            events = Event.objects.filter(
-                category_id=category_id,
-                is_active=True,
-                start_date__gte=today
-            ).order_by('-id')
+            if is_past:
+                events = Event.objects.filter(
+                    category_id=category_id,
+                    is_active=True,
+                    start_date__lt=today
+                ).order_by('-id')
+            else:
+                events = Event.objects.filter(
+                    category_id=category_id,
+                    is_active=True,
+                    start_date__gte=today
+                ).order_by('-id')
         else:
-            events = Event.objects.filter(
-                is_active=True,
-                start_date__gte=today
-            ).order_by('-id')
+            if is_past:
+                events = Event.objects.filter(
+                    is_active=True,
+                    start_date__lt=today
+                ).order_by('-id')
+            else:
+                events = Event.objects.filter(
+                    is_active=True,
+                    start_date__gte=today
+                ).order_by('-id')
 
-        paginator = PageNumberPagination()
-        paginator.page_size = 10  # Set the number of items per page
-        paginated_events = paginator.paginate_queryset(events, request)
-        serializer = EventRetrieveSerializer(paginated_events, many=True, context={'request': request})
-        return paginator.get_paginated_response(serializer.data)
-
-class PastEventByCategory(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        category_id = request.data.get('category_id')
-        today = timezone.now().date()
-        
-        if category_id:
-            events = Event.objects.filter(
-                category_id=category_id,
-                is_active=True,
-                start_date__lt=today
-            ).order_by('-id')
-        else:
-            events = Event.objects.filter(
-                is_active=True,
-                start_date__lt=today
-            ).order_by('-id')
-        
         paginator = PageNumberPagination()
         paginator.page_size = 10  # Set the number of items per page
         paginated_events = paginator.paginate_queryset(events, request)

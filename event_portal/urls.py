@@ -30,7 +30,6 @@ urlpatterns = [
     
     # Event by category
     path('event_by_category/', EventByCategory.as_view(), name='event_by_category'),
-    path('past_event_by_category/', PastEventByCategory.as_view(), name='past_event_by_category'),
     
     # register event
     path('register_event/<int:event_id>/', RegisterEvent.as_view(), name='register_event'),

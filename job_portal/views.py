@@ -74,6 +74,7 @@ class RetrieveJobPost(APIView):
                 'dead_line': job.dead_line,
                 'job_description': job.job_description,
                 'file': request.build_absolute_uri(job.file.url) if job.file else None,
+                'contact_link': job.contact_link,
                 'post_type': job.post_type,
                 'posted_on': job.posted_on,
             })

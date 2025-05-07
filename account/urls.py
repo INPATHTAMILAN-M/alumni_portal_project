@@ -137,4 +137,8 @@ urlpatterns = [
     # total reward
     path('total_points/', TotalPointsAPIView.as_view(), name='total_points'),
 
+    path('batch_mates/', MemberRelatedmembers.as_view(), name='batch_mates'),
+    path('send_message/', SendEmailMessage.as_view(), name='send_message'),
+    
+    
 ]

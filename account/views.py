@@ -2373,3 +2373,60 @@ class TotalPointsAPIView(APIView):
             "total_points": total_points,
             "activity_details": activity_details
         })
+
+class MemberRelatedmembers(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, member_id):
+        try:
+            member = Member.objects.get(id=member_id)
+        except Member.DoesNotExist:
+            return Response({'error': 'Member not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Get related members based on the same batch or course
+        related_members = Member.objects.filter(
+            Q(batch=member.batch) | Q(course=member.course)
+        ).exclude(id=member.id)
+
+        # Serialize the related members
+        response_data = []
+        for related_member in related_members:
+            full_name = f"{related_member.user.first_name} {related_member.user.last_name}" if related_member.user else None
+            member_data = {
+                'id': related_member.id,
+                'name': full_name,
+                'email': related_member.email,
+                'batch': related_member.batch.title if related_member.batch else None,
+                'course': related_member.course.title if related_member.course else None,
+                'profile_picture': request.build_absolute_uri(related_member.profile_picture.url) if related_member.profile_picture else None,
+            }
+            response_data.append(member_data)
+
+        return Response(response_data, status=status.HTTP_200_OK)
+
+class SendEmailMessage(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, member_id):
+        try:
+            member = Member.objects.get(id=member_id)
+        except Member.DoesNotExist:
+            return Response({'error': 'Member not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        subject = request.data.get('subject')
+        message = request.data.get('message')
+
+        if not subject or not message:
+            return Response({'error': 'Subject and message are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Send email using Django's send_mail function
+        send_mail(
+            subject,
+            f"{message}\n\nSent By,\n{request.user.first_name} {request.user.last_name}",
+            settings.DEFAULT_FROM_EMAIL,
+            [member.email],
+            fail_silently=False,
+        )
+
+        return Response({'message': 'Email sent successfully'}, status=status.HTTP_200_OK)
+        

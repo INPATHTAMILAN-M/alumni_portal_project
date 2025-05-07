@@ -17,7 +17,7 @@ from django.db.models import Q
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q, OuterRef, Subquery, Count
 class PostCategoryViewSet(viewsets.ModelViewSet):
-    queryset = PostCategory.objects.all()
+    queryset = PostCategory.objects.all().order_by('-id')
     serializer_class = PostCategorySerializer
 
     #permission_classes = [IsAuthenticated]
@@ -41,7 +41,7 @@ class PostCategoryViewSet(viewsets.ModelViewSet):
     
 
 class PostViewSet(viewsets.ModelViewSet):
-    queryset = Post.objects.all()
+    queryset = Post.objects.all().order_by('-posted_on')
     serializer_class = PostSerializer
 
     parser_classes = (MultiPartParser, FormParser)
@@ -192,7 +192,7 @@ class PostPendingViewSet(viewsets.ModelViewSet):
         
 # manage post Comments
 class PostCommentViewSet(viewsets.ModelViewSet):
-    queryset = PostComment.objects.all()
+    queryset = PostComment.objects.all().order_by('-comment_on')
     serializer_class = PostComment_Serializer
     permission_classes = [IsAuthenticated]
 
@@ -351,7 +351,7 @@ class PostFilterView(APIView):
 
         queryset = Post.objects.prefetch_related(
             'post_category'
-        ).filter(filters)
+        ).filter(filters).order_by('-posted_on')
 
         paginator = PageNumberPagination()
         paginator.page_size = 10  # Set the number of items per page
@@ -361,7 +361,20 @@ class PostFilterView(APIView):
 
         return paginator.get_paginated_response(serializer.data)
     
-    
+class UserPostsView(APIView):
+    def get(self, request, user_id):
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"message": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        posts = Post.objects.filter(posted_by=user).order_by('-posted_on')
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of items per page
+        paginated_posts = paginator.paginate_queryset(posts, request)
+        serializer = PostSerializer(paginated_posts, many=True, context={'request': request})
+        return paginator.get_paginated_response(serializer.data)
+
 # manage albums
 class AlbumView(APIView):
 

@@ -130,7 +130,24 @@ class MyRetrieveEvent(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        events = Event.objects.filter(posted_by=request.user).order_by('-id')
+        event_category_id = request.query_params.get('event_category_id')
+        is_active = request.query_params.get('is_active')
+        is_upcoming = request.query_params.get('is_upcoming', 'false').lower() == 'true'
+        is_completed = request.query_params.get('is_completed', 'false').lower() == 'true'
+        today = timezone.now().date()
+
+        events = Event.objects.filter(posted_by=request.user)
+
+        if event_category_id:
+            events = events.filter(category=event_category_id)
+        if is_active is not None:
+            events = events.filter(is_active=is_active.lower() == 'true')
+        if is_upcoming:
+            events = events.filter(start_date__gte=today)
+        if is_completed:
+            events = events.filter(start_date__lt=today)
+
+        events = events.order_by('-id')
         paginator = PageNumberPagination()
         paginator.page_size = 10  # Set the number of items per page
         paginated_events = paginator.paginate_queryset(events, request)

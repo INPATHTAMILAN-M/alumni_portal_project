@@ -1,14 +1,26 @@
 from django.db import models
 from django.contrib.auth.models import User
+from event_portal.models import Event
+from job_portal.models import JobPost
 
 class PostCategory(models.Model):
     name = models.CharField(max_length=255)
     def __str__(self):
         return self.name
 
+class Memories(models.Model):
+    year = models.IntegerField()
+    month = models.IntegerField()
+    created_on = models.DateField(auto_now=True)
+    approved = models.BooleanField(default=False)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+
 class Post(models.Model):
     title = models.CharField(max_length=255, blank=True, null=True)
     blog = models.CharField(max_length=255, blank=True, null=True)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, blank=True, null=True)
+    job_post = models.ForeignKey(JobPost, on_delete=models.CASCADE, blank=True, null=True)
+    memories = models.ForeignKey(Memories, on_delete=models.CASCADE, blank=True, null=True)
     post_category = models.ForeignKey(PostCategory, on_delete=models.CASCADE)
     content = models.TextField( blank=True, null=True)
     published = models.BooleanField(default=False)
@@ -85,13 +97,13 @@ class VideoComment(models.Model):
     comment_by = models.ForeignKey(User, on_delete=models.CASCADE)
     comment = models.TextField()
 
-class Memories(models.Model):
-    year = models.IntegerField()
-    month = models.IntegerField()
-    created_on = models.DateField(auto_now=True)
-    approved = models.BooleanField(default=False)
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+# class MemoryLike(models.Model):
+#     memory = models.ForeignKey(Memories, on_delete=models.CASCADE, related_name='album_likes')
+#     liked_by = models.ForeignKey(User, on_delete=models.CASCADE)
 
+#     def __str__(self):
+#         return f"{self.liked_by.username} liked {self.album.album_name}"
+    
 class MemoryComment(models.Model):
     memory = models.ForeignKey(Memories, on_delete=models.CASCADE)
     comment_by = models.ForeignKey(User, on_delete=models.CASCADE)

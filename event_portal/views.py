@@ -8,7 +8,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from account.models import Member
-from .models import *
+from media_portal.models import Post, PostCategory
 from account.permissions import *
 from .serializers import *
 from django.core.exceptions import ObjectDoesNotExist
@@ -101,7 +101,14 @@ class CreateEvent(APIView):
 
                 # Create EventQuestion linking event and question
                 EventQuestion.objects.create(event=event, question=question)
-
+            Post.objects.create(
+                title=event.title,
+                event=event,
+                published=True,
+                visible_to_public=event.is_public,
+                posted_by=event.posted_by,
+                post_category=PostCategory.objects.get(name='Event'),  # Assuming you have a category named 'Memories'
+            )
             return Response({
                 "message": "Event created successfully",
             }, status=status.HTTP_201_CREATED)

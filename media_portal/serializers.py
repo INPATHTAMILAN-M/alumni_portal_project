@@ -256,3 +256,11 @@ class MemorySerializer(serializers.ModelSerializer):
             MemoryPhotos.objects.create(memory=memory, **photo_data)
 
         return memory
+    
+class MemoryUpdateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Memories
+        fields = ['id', 'year', 'month', 'approved']
+        read_only_fields = ['approved']
+        

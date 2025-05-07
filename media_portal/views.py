@@ -707,27 +707,31 @@ class MemoryView(APIView):
         
 
     def patch(self, request, memory_id):
-        if not (request.user.groups.filter(name__in=['Alumni_Manager', 'Administrator']).exists()):
-            return Response(
-                {"message": "You do not have permission to approve memories."},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
         try:
-            memory = Memories.objects.get(id=memory_id, approved=False)
+            memory = Memories.objects.get(id=memory_id)
         except Memories.DoesNotExist:
             return Response(
-                {"message": "Memory not found or already approved."},
+                {"message": "Memory not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        memory.approved = True
-        memory.save()
+        # Permission check
+        # if not (memory.created_by == request.user or request.user.groups.filter(name__in=['Alumni_Manager', 'Administrator']).exists()):
+        #     return Response(
+        #         {"message": "You do not have permission to update this memory."},
+        #         status=status.HTTP_403_FORBIDDEN
+        #     )
 
-        return Response(
-            {"message": "Memories approved successfully."},
-            status=status.HTTP_200_OK
-        )
+        # Partial update
+        serializer = MemoryUpdateSerializer(memory, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {"message": "Memory updated successfully."},
+                status=status.HTTP_200_OK
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def delete(self, request, photo_id):
         try:
@@ -783,7 +787,28 @@ class MemoryView(APIView):
             status=status.HTTP_200_OK
         )
 
+class ApproveMemory(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, memory_id):
+        try:
+            memory = Memories.objects.get(id=memory_id)
+        except Memories.DoesNotExist:
+            return Response({"message": "Memory not found."}, status=status.HTTP_404_NOT_FOUND)
 
+        if request.user.groups.filter(name='Alumni_Manager').exists() or request.user.groups.filter(name='Administrator').exists():
+            memory.approved = True
+            memory.save()
+            Post.objects.create(
+                title=f"Memories created by {memory.created_by.first_name} {memory.created_by.last_name}",
+                memories=memory,
+                published=True,
+                posted_by=memory.created_by,
+                post_category=PostCategory.objects.get(name='Memories'),  # Assuming you have a category with ID 1 for memories
+            )
+            return Response({"message": "Memory approved successfully."}, status=status.HTTP_200_OK)
+        else:
+            return Response({"message": "You do not have permission to approve this memory."}, status=status.HTTP_403_FORBIDDEN)
 class ApprovedMemoriesView(APIView):
     
     def get(self, request):

@@ -13,6 +13,7 @@ from django.conf import settings
 from django.db.models import Count
 from account.permissions import *
 from rest_framework.pagination import PageNumberPagination
+from media_portal.models import PostCategory, Post
 class CreateJobPost(APIView):
     permission_classes = [IsAuthenticated]
     def post(self, request):
@@ -44,6 +45,13 @@ class CreateJobPost(APIView):
             activity=activity,
             details=f"{job_post.job_title} Posted"
         )
+        Post.objects.create(
+                title=job_post.job_title,
+                job_post=job_post,
+                published=True,
+                posted_by=job_post.posted_by,
+                post_category=PostCategory.objects.get(name='Job'),  # Assuming you have a category with ID 1 for memories
+            )
         job_post.save()
         job_post.skills.set(request.data.getlist('skills'))  # Assuming skills is a list of IDs
         return Response({"message": "Job post created successfully"}, status=status.HTTP_201_CREATED)

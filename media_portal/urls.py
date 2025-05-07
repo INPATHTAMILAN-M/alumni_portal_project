@@ -49,11 +49,12 @@ path('albums/unapprovedphotos/', AlbumsWithUnapprovedPhotosView.as_view(), name=
 
 # manage memories
 path('creatememories/', MemoryView.as_view(), name='create_memories'),
-path('memories/<int:memory_id>/', MemoryView.as_view(), name='update_memories'),
+path('memories/<int:memory_id>/', MemoryView.as_view(), name='detail_memories'),
+path('updatememories/<int:memory_id>/', MemoryView.as_view(), name='update_memories'),
 path('memories/', MemoryView.as_view(), name='retrieve_memories'),
 path('memories/approved/', ApprovedMemoriesView.as_view(), name='approved-memories'),
 path('memories/pending/', PendingMemoriesView.as_view(), name='pending-memories'),
-path('memories/approving/<int:memory_id>/', MemoryView.as_view(), name='approve_process'),
+path('memories/approving/<int:memory_id>/', ApproveMemory.as_view(), name='approve_process'),
 path('memories/deletephotos/<int:photo_id>/', MemoryView.as_view(), name='delete_memory_photo'),
 path('memories/deletetags/<int:tag_id>/', MemoryView.as_view(), name='delete_memory_tag'),
 path('deletememories/<int:memory_id>/', MemoryView.as_view(), name='delete_memory'),

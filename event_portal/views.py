@@ -413,34 +413,49 @@ class RegisterEvent(APIView):
 
         return Response(questions_data, status=status.HTTP_200_OK)
 
+
     def post(self, request, event_id):
         event = get_object_or_404(Event, id=event_id)
-        
+
+        # Check if the user is already registered
         if EventRegistration.objects.filter(event=event, user=request.user).exists():
             return Response({"error": "You are already registered for this event."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Create the registration
         event_registration = EventRegistration.objects.create(
             event=event,
             user=request.user
         )
 
         responses_data = request.data.get('responses', [])
-        
-        if responses_data:
-            for response_data in responses_data:
-                question_id = response_data.get('question_id')
-                response = response_data.get('response')
-                
-                try:
-                    question = Question.objects.get(id=question_id)
-                except Question.DoesNotExist:
-                    return Response({"error": "Question not found."}, status=status.HTTP_404_NOT_FOUND)
+        invalid_question_ids = []
 
-                RegistrationResponse.objects.create(
-                    registered_event=event_registration,
-                    question=question,
-                    response=response
-                )
+        for response_data in responses_data:
+            question_id = response_data.get('question_id')
+            response_text = response_data.get('response')
+
+            if not question_id :
+                return Response({"error": "Question ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Ensure the question is linked to this event
+            try:
+                question = Question.objects.get(id=question_id)
+                # question = event_question.question
+            except Question.DoesNotExist:
+                invalid_question_ids.append(question_id)
+                continue
+
+            RegistrationResponse.objects.create(
+                registered_event=event_registration,
+                question=question,
+                response=response_text
+            )
+
+        if invalid_question_ids:
+            return Response({
+                "message": "Registered with some warnings.",
+                "invalid_question_ids": invalid_question_ids
+            }, status=status.HTTP_201_CREATED)
 
         return Response({
             "message": "Successfully registered for the event."

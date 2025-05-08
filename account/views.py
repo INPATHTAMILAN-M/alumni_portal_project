@@ -903,9 +903,11 @@ class RegisterUsers(APIView):
             return Response({'error': 'Email not found in our records'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Check if member is approved
-        if not member.is_approve:
+        if not member.is_approve and member.user is None:
             return Response({'error': 'Still you are not approved by admin. If approved, you will receive an email.'}, status=status.HTTP_400_BAD_REQUEST)
         
+        if not member.is_approve:
+            return Response({'error': 'You are Blocked by the Admin'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Check user group
         if member.user is not None:
@@ -1685,6 +1687,8 @@ class MemberData(APIView):
             'batch': member.batch.id,
             'course': member.course.id,
             'about_me': member.about_me,
+            'is_approve': member.is_approve,
+            'register_no': member.register_no,
         }
         
         return Response({'member_data': member_data}, status=status.HTTP_200_OK)
@@ -1697,19 +1701,20 @@ class MemberData(APIView):
         # Update member fields with the new data
         user= User.objects.get(email=member.email)
         
-        user.first_name = request.data.get('first_name')
-        user.last_name = request.data.get('last_name')
-        member.salutation_id = request.data.get('salutation')
-        member.email = request.data.get('email')
+        user.first_name = request.data.get('first_name', user.first_name)
+        user.last_name = request.data.get('last_name', user.last_name)
+        member.salutation_id = request.data.get('salutation', member.salutation_id)
+        member.email = request.data.get('email', member.email)
         user.email = member.email
-        member.gender = request.data.get('gender')
-        member.dob = request.data.get('dob')
-        member.blood_group = request.data.get('blood_group')
-        member.batch_id = request.data.get('batch')
-        member.course_id = request.data.get('course')
-        member.about_me = request.data.get('about_me')
-        member.mobile_no = request.data.get('mobile_no')
-
+        member.gender = request.data.get('gender', member.gender)
+        member.dob = request.data.get('dob', member.dob)
+        member.blood_group = request.data.get('blood_group', member.blood_group)
+        member.batch_id = request.data.get('batch', member.batch_id)
+        member.course_id = request.data.get('course', member.course_id)
+        member.about_me = request.data.get('about_me', member.about_me)
+        member.mobile_no = request.data.get('mobile_no', member.mobile_no)
+        member.register_no = request.data.get('register_no', member.register_no)
+        member.is_approve = request.data.get('is_approve', member.is_approve) 
         user.save()
         # Save the updated member
         member.save()
@@ -2139,6 +2144,7 @@ class MemberListView(APIView):
                 'email': member.email,
                 'batch': member.batch.title if member.batch else None,
                 'course': member.course.title if member.course else None,
+                'register_no': member.register_no if member.register_no else None,
                 'profile_picture': request.build_absolute_uri(member.profile_picture.url) if member.profile_picture else None,
                 'alumni': alumni_data,
             }
@@ -2181,9 +2187,24 @@ class LatestMembers(APIView):
 # main filter
 class MemberFilterView(APIView):
     # permission_classes = [IsAuthenticated]
-
+    
     def post(self, request, *args, **kwargs):
         # Extract data from request
+        sort_by = request.data.get('sort_by', None)
+
+        # Support descending order if prefixed with "-"
+        sort_mapping = {
+            "First Name": "user__first_name",
+            "Last Name": "user__last_name",
+            "Register Number": "register_no",
+            "Year": "batch__end_year",
+        }
+        sort_direction = ""  # Default ascending
+        if sort_by and sort_by.startswith("-"):
+            sort_direction = "-"
+            sort_by = sort_by[1:]
+
+        sort_key = sort_mapping.get(sort_by, "id")
         batch = request.data.get('batch', None)
         role = request.data.get('role', None)
         course = request.data.get('course', None)
@@ -2249,10 +2270,12 @@ class MemberFilterView(APIView):
         elif department not in [None, ""]:  # If not faculty, filter by department associated with the course
             filters &= Q(course__department__id=department)
         # Apply the filters to the Member queryset with prefetch_related to optimize DB queries
+        sort_key = sort_mapping.get(sort_by, "-id")
         queryset = Member.objects.prefetch_related(
             'skills', 'education', 'experience', 'alumni', 
             'experience__industry', 'experience__role'
-        ).filter(filters).order_by('-id')  # Ordering for consistency
+        ).filter(filters)
+        queryset = queryset.order_by(f"{sort_direction}{sort_key}")
 
         # PAGINATE
         paginator = PageNumberPagination()
@@ -2280,6 +2303,7 @@ class MemberFilterView(APIView):
                 'email': member.email,
                 'batch': member.batch.title if member.batch else None,
                 'course': member.course.title if member.course else None,
+                'register_no': member.register_no if member.register_no else None,
                 'profile_picture': request.build_absolute_uri(member.profile_picture.url) if member.profile_picture else None,
                 'alumni': alumni_data,
             }

@@ -493,9 +493,6 @@ class EmailAttendees(APIView):
         event = get_object_or_404(Event, id=event_id)
         registrations = EventRegistration.objects.filter(event=event)
         
-        if not registrations.exists():
-            return Response({"error": "No registrations found for this event."}, status=status.HTTP_404_NOT_FOUND)
-        
         all_registered_users = []
         
         for registration in registrations:
@@ -509,9 +506,9 @@ class EmailAttendees(APIView):
         return Response({
             "event_id": event.id,
             "event_title": event.title,
-            "venue":event.venue,
-            "date":event.start_date,
-            "time":event.start_time,
+            "venue": event.venue,
+            "date": event.start_date,
+            "time": event.start_time,
             "registered_users": all_registered_users
         }, status=status.HTTP_200_OK)
         

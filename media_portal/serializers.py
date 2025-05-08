@@ -231,7 +231,7 @@ class MemorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Memories
-        fields = ['id', 'year', 'month', 'approved', 'tags', 'photos']
+        fields = ['id', 'year', 'month', 'approved', 'tags', 'photos','created_on', 'created_by']
         read_only_fields = ['approved']
         
     

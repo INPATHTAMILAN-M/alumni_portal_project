@@ -862,3 +862,24 @@ class PendingMemoriesView(APIView):
         paginated_memories = paginator.paginate_queryset(pending_memories, request)
         serialized_memories = MemorySerializer(paginated_memories, many=True,context={'request': request})
         return paginator.get_paginated_response(serialized_memories.data)
+    
+class SortingMemories(APIView):
+    def post(self, request, *args, **kwargs):
+        sort_by = request.data.get('sort_by', None)
+
+        sort_mapping = {
+            "Year": "year",
+            "Created On": "created_on",
+        }
+
+        sort_direction = ""
+        if sort_by and sort_by.startswith("-"):
+            sort_direction = "-"
+            sort_by = sort_by[1:]  # Remove dash
+
+        sort_key = sort_mapping.get(sort_by, "created_on")
+        queryset = Memories.objects.all().order_by(f"{sort_direction}{sort_key}")
+        paginator = PageNumberPagination()
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+        serializer = MemorySerializer(paginated_queryset, many=True, context={'request': request})
+        return paginator.get_paginated_response(serializer.data)

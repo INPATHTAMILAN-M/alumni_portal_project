@@ -61,5 +61,5 @@ path('memories/approving/<int:memory_id>/', ApproveMemory.as_view(), name='appro
 path('memories/deletephotos/<int:photo_id>/', MemoryView.as_view(), name='delete_memory_photo'),
 path('memories/deletetags/<int:tag_id>/', MemoryView.as_view(), name='delete_memory_tag'),
 path('deletememories/<int:memory_id>/', MemoryView.as_view(), name='delete_memory'),
-
+path('sorting_memories/', SortingMemories.as_view(), name='sorting_memories'),
 ]

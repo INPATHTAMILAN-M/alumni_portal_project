@@ -464,8 +464,8 @@ class RetrieveRegisteredEvent(APIView):
         
         for registration in paginated_registrations:
             user_data = {
-                "member_id": registration.user.member.id if registration.user.member else None,  
-                "profile_picture": registration.user.member.profile_picture if registration.user.member.profile_picture else None,                
+                "member_id": registration.user.member.id if hasattr(registration.user, 'member') else None,
+                "profile_picture": request.build_absolute_uri(registration.user.member.profile_picture.url) if hasattr(registration.user, 'member') and registration.user.member.profile_picture else None,
                 "full_name": registration.user.get_full_name(),
                 "email": registration.user.email,
                 "registration_date": registration.applied_on,

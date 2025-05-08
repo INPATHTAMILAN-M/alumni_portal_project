@@ -523,8 +523,10 @@ class EmailAttendees(APIView):
             return Response({"error": "No registrations found for this event."}, status=status.HTTP_404_NOT_FOUND)
 
         subject = request.data.get('subject')
+        name_check = request.data.get('name_checkbox', 'false').lower() == 'true'
         message = request.data.get('message')
         file = request.FILES.get('file', None)
+        
         
         recipient_emails = [registration.user.email for registration in registrations]
         
@@ -543,6 +545,27 @@ class EmailAttendees(APIView):
         if file:
             email.attach(file.name, file.read(), file.content_type)
 
+        try:
+            email.send()
+            return Response({"status": "Email sent successfully!"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"status": "Failed to send email", "error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class TestEmail(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        try:
+            recipient_email = request.data.get('recipient_email')
+        except KeyError:
+            return Response({"error": "Recipient email is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        email = EmailMessage(
+            subject="Test Email", 
+            body="This is a test email.",     
+            from_email=settings.DEFAULT_FROM_EMAIL,  
+            to=recipient_email,  
+        )
         try:
             email.send()
             return Response({"status": "Email sent successfully!"}, status=status.HTTP_200_OK)

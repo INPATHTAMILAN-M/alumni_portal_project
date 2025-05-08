@@ -38,6 +38,8 @@ urlpatterns = [
     # Email attendees
     path('email_attendees/<int:event_id>/', EmailAttendees.as_view(), name='email_attendees'),
     path('email_selected_members/', EmailSelectedMembers.as_view(), name='email_selected_members'),
+    path('test_email/', TestEmail.as_view(), name='test_email'),
+    
     
     
     # Export Event

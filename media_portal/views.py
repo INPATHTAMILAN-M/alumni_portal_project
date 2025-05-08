@@ -317,7 +317,7 @@ class SendBirthdayWishes(APIView):
             if member.dob and member.dob.month == date.today().month and member.dob.day == date.today().day:
                 
                 subject = 'Happy Birthday!'
-                message = f"Dear {member.salutation} {member.user.first_name} {member.user.last_name},\n\nWe wish you a very Happy Birthday! 🎉\n\nBest regards,\n {request.user.email}"
+                message = f"Dear {member.salutation} {member.user.first_name} {member.user.last_name},\n\nWe wish you a very Happy Birthday! 🎉\n\nBest regards,\n {request.user.first_name} {request.user.last_name}"
                 from_email = settings.EMAIL_HOST_USER
                 to_email = [member.email]
                 
@@ -537,7 +537,28 @@ class AlbumView(APIView):
                 )
         except Album.DoesNotExist:
             return Response({"message": "Album not found."}, status=status.HTTP_404_NOT_FOUND)
-        
+
+class SortingAlbums(APIView):
+    def post(self, request, *args, **kwargs):
+        sort_by = request.data.get('sort_by', None)
+
+        sort_mapping = {
+            "A to Z": "album_name",
+            "Created On": "created_on",
+        }
+
+        sort_direction = ""
+        if sort_by and sort_by.startswith("-"):
+            sort_direction = "-"
+            sort_by = sort_by[1:]  # Remove dash
+
+        sort_key = sort_mapping.get(sort_by, "created_on")
+        queryset = Album.objects.all().order_by(f"{sort_direction}{sort_key}")
+        paginator = PageNumberPagination()
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+        serializer = AlbumSerializer(paginated_queryset, many=True, context={'request': request})
+        return paginator.get_paginated_response(serializer.data)
+    
 class AlbumDetailView(APIView):
 
     def get(self, request, album_id=None):

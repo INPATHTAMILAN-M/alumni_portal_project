@@ -193,10 +193,14 @@ class UpdateEvent(APIView):
                             help_text=question_data.get('help_text', ''),
                             options=question_data.get('options', ''),
                             is_faq=question_data.get('is_faq', False),
-                           
                         )
-                EventQuestion.objects.create(event=event, question=question)
-
+                
+                # Ensure `question` is valid before creating EventQuestion
+                    if question is not None:
+                        EventQuestion.objects.create(event=event, question=question)
+                    else:
+                        # Handle the case where question could not be created or found.
+                        return Response({"error": "A valid question is required."}, status=status.HTTP_400_BAD_REQUEST)
 
             return Response({
                 "message": "Event updated successfully",

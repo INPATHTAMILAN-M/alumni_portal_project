@@ -48,6 +48,7 @@ path('album/approved/<int:album_id>/', AlbumDetailView.as_view(), name='approved
 path('approvedalbums/', AlbumDetailView.as_view(), name='approved_albums'),
 path('album/photos/<int:photo_id>/approve/', AlbumDetailView.as_view(), name='approve_album_photo'),
 path('albums/unapprovedphotos/', AlbumsWithUnapprovedPhotosView.as_view(), name='albums_unapproved_photos'),
+path('sorting_albums/', SortingAlbums.as_view(), name='sorting_albums'),
 
 # manage memories
 path('creatememories/', MemoryView.as_view(), name='create_memories'),

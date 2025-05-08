@@ -549,7 +549,7 @@ class EmailAttendees(APIView):
             return Response({"status": "Failed to send email", "error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class TestEmail(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     
     def post(self, request):
         try:
@@ -561,7 +561,7 @@ class TestEmail(APIView):
             subject="Test Email", 
             body="This is a test email.",     
             from_email=settings.DEFAULT_FROM_EMAIL,  
-            to=recipient_email,  
+            to=[recipient_email],  
         )
         try:
             email.send()

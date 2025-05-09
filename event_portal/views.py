@@ -18,6 +18,9 @@ from django.utils import timezone
 from rest_framework.parsers import MultiPartParser, FormParser
 import json
 from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.core.mail import EmailMultiAlternatives
+
 # manage category
 class CreateEventCategory(APIView):
     # permission_classes = [IsAuthenticated, IsAlumniManagerOrAdministrator]
@@ -426,7 +429,8 @@ class RegisterEvent(APIView):
             event=event,
             user=request.user
         )
-
+        # if request.data.get('responses') is None:
+        #     return Response({"error": "Responses are required."}, status=status.HTTP_400_BAD_REQUEST)
         responses_data = request.data.get('responses', [])
         invalid_question_ids = []
 
@@ -502,7 +506,7 @@ class RetrieveRegisteredEvent(APIView):
 
 
 class EmailAttendees(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     
     def get(self, request, event_id):
         event = get_object_or_404(Event, id=event_id)
@@ -527,6 +531,41 @@ class EmailAttendees(APIView):
             "registered_users": all_registered_users
         }, status=status.HTTP_200_OK)
         
+    # def post(self, request, event_id):
+    #     event = get_object_or_404(Event, id=event_id)
+    #     registrations = EventRegistration.objects.filter(event=event)
+        
+    #     if not registrations.exists():
+    #         return Response({"error": "No registrations found for this event."}, status=status.HTTP_404_NOT_FOUND)
+
+    #     subject = request.data.get('subject')
+    #     name_check = request.data.get('name_checkbox', 'false').lower() == 'true'
+    #     message = request.data.get('message')
+    #     file = request.FILES.get('file', None)
+        
+        
+    #     recipient_emails = [registration.user.email for registration in registrations]
+        
+    #     if not subject or not message:
+    #         return Response({"error": "Subject and message are required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+    #     email = EmailMessage(
+    #         subject=subject, 
+    #         body=message,     
+    #         from_email=settings.DEFAULT_FROM_EMAIL,  
+    #         to=recipient_emails,  
+    #     )
+
+
+    #     if file:
+    #         email.attach(file.name, file.read(), file.content_type)
+
+    #     try:
+    #         email.send()
+    #         return Response({"status": "Email sent successfully!"}, status=status.HTTP_200_OK)
+    #     except Exception as e:
+    #         return Response({"status": "Failed to send email", "error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     def post(self, request, event_id):
         event = get_object_or_404(Event, id=event_id)
         registrations = EventRegistration.objects.filter(event=event)
@@ -539,30 +578,50 @@ class EmailAttendees(APIView):
         message = request.data.get('message')
         file = request.FILES.get('file', None)
         
-        
-        recipient_emails = [registration.user.email for registration in registrations]
-        
-        if not subject or not message:
-            return Response({"error": "Subject and message are required."}, status=status.HTTP_400_BAD_REQUEST)
-        
+        if not subject:
+            return Response({"error": "Subject is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        email = EmailMessage(
-            subject=subject, 
-            body=message,     
-            from_email=settings.DEFAULT_FROM_EMAIL,  
-            to=recipient_emails,  
-        )
+        for registration in registrations:
+            recipient_name = registration.user.get_full_name() if name_check else "Alumni"
+            
+            # Prepare context for the template
+            context = {
+                'name_check': name_check,
+                'subject': subject,
+                'message': message,
+                'recipient_name': recipient_name,
+                'event_title': event.title,
+                'event_date': event.start_date.strftime("%A, %d %b %Y"),
+                'event_time': event.start_time.strftime("%I:%M %p"),
+                'event_venue': event.venue,
+                'event_link': f"http://alumni.decodeschool.com/",
+                'contact_person': "Admin",
+                'contact_id': "Admin@gmail.com"
+            }
+            
+            # Render HTML content
+            html_content = render_to_string('email_template.html', context)
+            
+            # Create email
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=message,  # This will be the fallback for text-only clients
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[registration.user.email],
+            )
+            email.attach_alternative(html_content, "text/html")
+            
+            if file:
+                email.attach(file.name, file.read(), file.content_type)
 
+            try:
+                email.send()
+            except Exception as e:
+                # Log error but continue with other emails
+                print(f"Failed to send email to {registration.user.email}: {str(e)}")
 
-        if file:
-            email.attach(file.name, file.read(), file.content_type)
-
-        try:
-            email.send()
-            return Response({"status": "Email sent successfully!"}, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"status": "Failed to send email", "error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+        return Response({"status": "Emails sent successfully!"}, status=status.HTTP_200_OK)
+    
 class TestEmail(APIView):
     # permission_classes = [IsAuthenticated]
     
@@ -571,13 +630,30 @@ class TestEmail(APIView):
             recipient_email = request.data.get('recipient_email')
         except KeyError:
             return Response({"error": "Recipient email is required."}, status=status.HTTP_400_BAD_REQUEST)
+        subject = 'Testing Email'
+        message = 'This is a test email.'
+        name_check = 'false'
+        context = {
+            'name_check': name_check,
+            'subject': subject,
+            'message': message,
+            'recipient_name': recipient_email,
+            'event_link': f"http://alumni.decodeschool.com/",
+            'contact_person': "Admin",
+            'contact_id': "Admin@gmail.com"
+        }
         
-        email = EmailMessage(
-            subject="Test Email", 
-            body="This is a test email.",     
-            from_email=settings.DEFAULT_FROM_EMAIL,  
-            to=[recipient_email],  
+        # Render HTML content
+        html_content = render_to_string('email_template.html', context)
+        
+        # Create email
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=message,  # This will be the fallback for text-only clients
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[recipient_email],
         )
+        email.attach_alternative(html_content, "text/html")
         try:
             email.send()
             return Response({"status": "Email sent successfully!"}, status=status.HTTP_200_OK)

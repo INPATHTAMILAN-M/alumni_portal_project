@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f6f6f6;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 600px;
+            background-color: #ffffff;
+            margin: 0 auto;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .header {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        .header a {
+            color: #333;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .content {
+            margin-top: 20px;
+            font-size: 14px;
+            text-align: left;
+        }
+        .divider {
+            border-top: 1px solid #e0e0e0;
+            margin: 20px 0;
+        }
+        .event-title {
+            font-size: 16px;
+            color: #2c3e50;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .event-details {
+            margin: 15px 0;
+            line-height: 1.8;
+            text-align: left;
+        }
+        .button {
+            display: inline-block;
+            background-color: #28a745;
+            color: #fff;
+            padding: 10px 20px;
+            text-align: center;
+            border-radius: 20px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .footer {
+            font-size: 12px;
+            color: #666;
+            margin-top: 30px;
+            text-align: center;
+        }
+        .footer a {
+            color: #3366cc;
+            text-decoration: none;
+        }
+        .disclaimer {
+            font-size: 11px;
+            color: #999;
+            margin-top: 15px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            Karpagam College of Pharmacy<br>
+            <a href="http://alumni.decodeschool.com" target="_blank">http://alumni.decodeschool.com</a>
+        </div>
+
+        <div class="content">
+            <p>Dear {% if name_check %}{{ recipient_name }}{% else %}Alumni{% endif %},</p>
+            <p>{{message}}</p>
+            {% if event_title %}
+            <p>Please find the event details below:</p>
+            {% endif %}
+            <div class="divider"></div>
+
+            <div class="event-title">{{ event_title }}</div>
+            {% if event_title %}
+            <div class="event-details">
+                <p><strong>Date:</strong> {{ event_date }}, {{ event_time }}</p>
+                <p><strong>Venue:</strong> {{ event_venue }}</p>
+            </div>
+            {% endif %}
+            
+
+            <div style="text-align: center;">
+                <a class="button" href="http://alumni.decodeschool.com" target="_blank">View more details</a>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="footer">
+                <p>For any queries contact:</p>
+                <p>{{ contact_person }} ({{ contact_id }})</p>
+                <p>Karpagam College of Pharmacy | 
+                    <a href="http://alumni.decodeschool.com">http://alumni.decodeschool.com</a>
+                </p>
+                <p class="disclaimer">
+                    This email is sent on behalf of Karpagam College of Pharmacy
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

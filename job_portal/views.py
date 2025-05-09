@@ -17,9 +17,11 @@ from media_portal.models import PostCategory, Post
 class CreateJobPost(APIView):
     permission_classes = [IsAuthenticated]
     def post(self, request):
-        
+        # Retrieve the industry and role objects
         industry = Industry.objects.get(id=request.data.get('industry'))
         role = Role.objects.get(id=request.data.get('role'))
+
+        # Create the job_post object
         job_post = JobPost(
             posted_by=request.user,
             job_title=request.data.get('job_title'),
@@ -36,26 +38,37 @@ class CreateJobPost(APIView):
             file=request.FILES.get('file'),
             post_type=request.data.get('post_type')
         )
+        
+        # Save the job_post object first
+        job_post.save()
+
+        # Now, create an activity log
         try:
             activity = ActivityPoints.objects.get(name="Job Post")
         except ActivityPoints.DoesNotExist:
             return Response("Activity not found.")
+
+        # Log the user activity
         UserActivity.objects.create(
             user=request.user,
             activity=activity,
             details=f"{job_post.job_title} Posted"
         )
-        Post.objects.create(
-                title=job_post.job_title,
-                job_post=job_post,
-                published=True,
-                posted_by=job_post.posted_by,
-                post_category=PostCategory.objects.get(name='Job'),  # Assuming you have a category with ID 1 for memories
-            )
-        job_post.save()
-        job_post.skills.set(request.data.getlist('skills'))  # Assuming skills is a list of IDs
-        return Response({"message": "Job post created successfully"}, status=status.HTTP_201_CREATED)
 
+        # Create the Post object after job_post is saved
+        Post.objects.create(
+            title=job_post.job_title,
+            job_post=job_post,
+            published=True,
+            posted_by=job_post.posted_by,
+            post_category=PostCategory.objects.get(name='Job'),
+        )
+        
+        # Set the skills for the job_post
+        job_post.skills.set(request.data.getlist('skills'))
+
+        # Return success response
+        return Response({"message": "Job post created successfully"}, status=status.HTTP_201_CREATED)
 class RetrieveJobPost(APIView):
     permission_classes = [IsAuthenticated]
 

@@ -301,21 +301,30 @@ class MemorySerializer(serializers.ModelSerializer):
      
     def get_created_by(self, obj):
         try:
-            member = obj.created_by.member
-            return {
-                "id": member.id,
-                "fullname": member.user.get_full_name(),
-                "email": member.email,
-                "profile_picture": self.context['request'].build_absolute_uri(member.profile_picture.url) if member.profile_picture else None,
-                "batch": member.batch.end_year if member.batch else None,
-                "course": member.course.department.short_name if member.course and member.course.department else None,
-                "department": member.department.short_name if member.department else None,
-                "mobile_no": member.mobile_no,
-                "gender": member.gender,
-                "dob": member.dob,
-            }
-        except (AttributeError, Member.DoesNotExist):
-            return None   
+            if hasattr(obj.created_by, 'member'):
+                member = obj.created_by.member
+                return {
+                    "id": member.id,
+                    "fullname": member.user.get_full_name(),
+                    "email": member.email,
+                    "profile_picture": self.context['request'].build_absolute_uri(member.profile_picture.url) if member.profile_picture else None,
+                    "batch": member.batch.end_year if member.batch else None,
+                    "course": member.course.department.short_name if member.course and member.course.department else None,
+                    "department": member.department.short_name if member.department else None,
+                    "mobile_no": member.mobile_no,
+                    "gender": member.gender,
+                    "dob": member.dob,
+                }
+            else:
+                user = obj.created_by
+                return {
+                    "id": user.id,
+                    "fullname": user.get_full_name(),
+                    "email": user.email,
+                }
+        except AttributeError:
+            return None
+        
     def get_post(self, obj):
         try:
             post = Post.objects.get(memories=obj)

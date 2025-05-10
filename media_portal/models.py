@@ -115,8 +115,13 @@ class MemoryComment(models.Model):
 
 class MemoryTags(models.Model):
     memory = models.ForeignKey(Memories, on_delete=models.CASCADE,related_name='memorytags')
-    tag = models.CharField(max_length=55)
+    tag = models.CharField(max_length=255)
 
+    def __str__(self):
+        return f"Tag {self.tag} in {self.memory.year}-{self.memory.month} by {self.memory.created_by.username}"
 class MemoryPhotos(models.Model):
     memory = models.ForeignKey(Memories, on_delete=models.CASCADE,related_name='memoryphoto')
     photo = models.ImageField(upload_to='memories/photos/')
+
+    def __str__(self):
+        return f"Photo in {self.memory.year}-{self.memory.month} by {self.memory.created_by.username}"

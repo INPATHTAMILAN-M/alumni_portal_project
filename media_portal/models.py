@@ -70,6 +70,8 @@ class AlbumPhotos(models.Model):
     uploaded_on = models.DateField(auto_now_add=True)
     approved = models.BooleanField(default=False)
 
+    def __str__(self):
+        return f"Photo in {self.album.album_name} by {self.album.created_by.username}"
 class AlbumComment(models.Model):
     album = models.ForeignKey(Album, on_delete=models.CASCADE, related_name='album_comments')
     comment_by = models.ForeignKey(User, on_delete=models.CASCADE)

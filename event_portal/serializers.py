@@ -35,7 +35,16 @@ class EventSerializer(serializers.ModelSerializer):
         fields = ['id','title', 'category', 'start_date', 'start_time', 'venue', 'address', 'link', 'is_public',
                   'need_registration', 'registration_close_date', 'description', 'event_wallpaper', 'instructions',
                   'posted_by', 'event_question']
-        
+
+class EventUpdateSerializer(serializers.ModelSerializer):
+    event_wallpaper = serializers.ImageField(required=False)
+    event_question = EventQuestionSerializer(many=True, read_only=True)  
+
+    class Meta:
+        model = Event
+        fields = ['id','title', 'category', 'start_date', 'start_time', 'venue', 'address', 'link', 'is_public',
+                  'need_registration', 'registration_close_date', 'description', 'event_wallpaper', 'instructions',
+                  'posted_by', 'event_question']
     # def get_event_wallpaper(self, obj):
     #     request = self.context.get('request')
     #     if obj.event_wallpaper:

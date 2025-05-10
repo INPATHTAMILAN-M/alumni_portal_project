@@ -714,7 +714,7 @@ class MemoryView(APIView):
             try:
                 memory = Memories.objects.get(id=memory_id)
                 memory_data = MemorySerializer(memory, context=self.get_serializer_context()).data
-                memory_data['created_by'] = memory.created_by.username
+                # memory_data['created_by'] = memory.created_by.username
                 memory_data['tags'] = [
                     tag.tag for tag in MemoryTags.objects.filter(memory=memory)
                 ]
@@ -734,7 +734,7 @@ class MemoryView(APIView):
             all_memories_data = []
             for memory in paginated_memories:
                 memory_data = MemorySerializer(memory, context=self.get_serializer_context()).data
-                memory_data['created_by'] = memory.created_by.username
+                # memory_data['created_by'] = memory.created_by.username
                 memory_data['tags'] = [
                     tag.tag for tag in MemoryTags.objects.filter(memory=memory)
                 ]

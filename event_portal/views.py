@@ -159,21 +159,72 @@ class MyRetrieveEvent(APIView):
     
 class UpdateEvent(APIView):
     # permission_classes = [IsAuthenticated]
+    parser_classes = (MultiPartParser, FormParser)
 
     def get(self, request,event_id):
         events = Event.objects.get(id=event_id)  # Fetch all events
         serializer = EventRetrieveSerializer(events, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-    def post(self, request, event_id):
+    # def patch(self, request, event_id):
+    #     try:
+    #         event = Event.objects.get(id=event_id, posted_by=request.user)
+    #     except Event.DoesNotExist:
+    #         return Response({"error": "Event not found or permission denied."}, status=status.HTTP_404_NOT_FOUND)
+
+    #     # Copy request data for serializer use
+    #     event_data = request.data.copy()
+    #     event_data['posted_by'] = request.user.id
+
+    #     # Parse event_question from form-data (stringified JSON)
+    #     try:
+    #         event_questions_raw = request.data.get('event_question', '[]')
+    #         event_questions = json.loads(event_questions_raw)
+    #     except json.JSONDecodeError:
+    #         return Response({"error": "Invalid format for event_question"}, status=status.HTTP_400_BAD_REQUEST)
+
+    #     # Prepare serializer with partial update
+    #     event_serializer = EventUpdateSerializer(event, data=event_data, partial=True)
+
+    #     if event_serializer.is_valid():
+    #         event_serializer.save()
+
+    #         # Clean up old event-question links
+    #         related_question_ids = list(EventQuestion.objects.filter(event=event).values_list('question_id', flat=True))
+    #         EventQuestion.objects.filter(event=event).delete()
+    #         Question.objects.filter(id__in=related_question_ids, is_recommended=False).delete()
+
+    #         for question_data in event_questions:
+    #             if not isinstance(question_data, dict):
+    #                 return Response({"error": "Each question must be a dictionary with proper fields."}, status=status.HTTP_400_BAD_REQUEST)
+
+    #             question = None
+    #             question_text = question_data.get('question', '').strip()
+
+    #             if question_text:
+    #                 try:
+    #                     question = Question.objects.get(question=question_text)
+    #                 except ObjectDoesNotExist:
+    #                     question = Question.objects.create(
+    #                         question=question_text,
+    #                         help_text=question_data.get('help_text', ''),
+    #                         options=question_data.get('option', ''),
+    #                         is_faq=question_data.get('is_faq', False),
+    #                     )
+
+    #             if question:
+    #                 EventQuestion.objects.create(event=event, question=question)
+    #             else:
+    #                 return Response({"error": "A valid question is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    #         return Response({"message": "Event updated successfully"}, status=status.HTTP_200_OK)
+
+    #     return Response(event_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def patch(self, request, event_id):
         try:
             event = Event.objects.get(id=event_id, posted_by=request.user)
         except Event.DoesNotExist:
             return Response({"error": "Event not found or permission denied."}, status=status.HTTP_404_NOT_FOUND)
-
-        # Copy request data for serializer use
-        event_data = request.data.copy()
-        event_data['posted_by'] = request.user.id
 
         # Parse event_question from form-data (stringified JSON)
         try:
@@ -182,43 +233,39 @@ class UpdateEvent(APIView):
         except json.JSONDecodeError:
             return Response({"error": "Invalid format for event_question"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Prepare serializer with partial update
-        event_serializer = EventSerializer(event, data=event_data, partial=True)
+        event_serializer = EventUpdateSerializer(event, data=request.data, partial=True)
 
         if event_serializer.is_valid():
-            event_serializer.save()
+            event_serializer.save(posted_by=request.user)  # Inject posted_by here if needed
 
-            # Clean up old event-question links
+            # Clean up old questions
             related_question_ids = list(EventQuestion.objects.filter(event=event).values_list('question_id', flat=True))
             EventQuestion.objects.filter(event=event).delete()
             Question.objects.filter(id__in=related_question_ids, is_recommended=False).delete()
 
             for question_data in event_questions:
                 if not isinstance(question_data, dict):
-                    return Response({"error": "Each question must be a dictionary with proper fields."}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({"error": "Each question must be a dictionary."}, status=status.HTTP_400_BAD_REQUEST)
 
-                question = None
                 question_text = question_data.get('question', '').strip()
+                if not question_text:
+                    continue
 
-                if question_text:
-                    try:
-                        question = Question.objects.get(question=question_text)
-                    except ObjectDoesNotExist:
-                        question = Question.objects.create(
-                            question=question_text,
-                            help_text=question_data.get('help_text', ''),
-                            options=question_data.get('option', ''),
-                            is_faq=question_data.get('is_faq', False),
-                        )
-
-                if question:
-                    EventQuestion.objects.create(event=event, question=question)
-                else:
-                    return Response({"error": "A valid question is required."}, status=status.HTTP_400_BAD_REQUEST)
+                question, _ = Question.objects.get_or_create(
+                    question=question_text,
+                    defaults={
+                        'help_text': question_data.get('help_text', ''),
+                        'options': question_data.get('option', ''),
+                        'is_faq': question_data.get('is_faq', False)
+                    }
+                )
+                EventQuestion.objects.create(event=event, question=question)
 
             return Response({"message": "Event updated successfully"}, status=status.HTTP_200_OK)
 
         return Response(event_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    
 # deactivate event
 class DeactivateEvent(APIView):
     permission_classes = [IsAuthenticated]

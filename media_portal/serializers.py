@@ -168,8 +168,9 @@ class MemberBirthdaySerializer(serializers.ModelSerializer):
         """
         Method to get the absolute URL for the profile picture.
         """
-        if obj.profile_picture:
-            return self.context['request'].build_absolute_uri(obj.profile_picture.url)
+        member = getattr(obj, 'member', None)  # Access the related Member object
+        if member and member.profile_picture:
+            return self.context['request'].build_absolute_uri(member.profile_picture.url)
         return None
 
     def to_representation(self, instance):
@@ -233,6 +234,25 @@ class MemoryPhotosSerializer(serializers.ModelSerializer):
         return None
 
 class MemorySerializer(serializers.ModelSerializer):
+    created_by = serializers.SerializerMethodField()
+
+    def get_created_by(self, obj):
+        try:
+            member = obj.created_by.member
+            return {
+                "id": member.id,
+                "fullname": member.user.get_full_name(),
+                "email": member.email,
+                "profile_picture": self.context['request'].build_absolute_uri(member.profile_picture.url) if member.profile_picture else None,
+                "batch": member.batch.end_year if member.batch else None,
+                "course": member.course.department.short_name if member.course and member.course.department else None,
+                "department": member.department.short_name if member.department else None,
+                "mobile_no": member.mobile_no,
+                "gender": member.gender,
+                "dob": member.dob,
+            }
+        except (AttributeError, Member.DoesNotExist):
+            return None
     tags = MemoryTagsSerializer(many=True, read_only=True, source='memorytags')  # Use related_name for source
     photos = serializers.SerializerMethodField()
 

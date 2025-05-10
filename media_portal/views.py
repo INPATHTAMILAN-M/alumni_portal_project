@@ -464,7 +464,7 @@ class AlbumView(APIView):
         else:
             albums = Album.objects.filter(created_by=request.user).order_by('-created_on')
             paginator = PageNumberPagination()
-            paginator.page_size = 10  # Set the number of items per page
+            paginator.page_size = 12  # Set the number of items per page
             paginated_albums = paginator.paginate_queryset(albums, request)
             serialized_albums = AlbumSerializer(paginated_albums, many=True, context={'request': request}).data
             for album in serialized_albums:
@@ -491,25 +491,6 @@ class AlbumView(APIView):
 
         except Album.DoesNotExist:
             return Response({"message": "Album not found."}, status=status.HTTP_404_NOT_FOUND)
-     
-    def delete(self, request, photo_id):
-        try:
-            photo = AlbumPhotos.objects.get(id=photo_id)
-
-            is_creator = photo.album.created_by == request.user
-            is_alumni_manager = request.user.groups.filter(name='Alumni_Manager').exists()
-            is_adminstrator = request.user.groups.filter(name='Administrator').exists()
-
-            if is_creator or is_alumni_manager or is_adminstrator:
-                photo.delete()
-                return Response({"message": "Photo deleted successfully."}, status=status.HTTP_200_OK)
-            else:
-                return Response(
-                    {"message": "You do not have permission to delete this photo."},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-        except AlbumPhotos.DoesNotExist:
-            return Response({"message": "Photo not found."}, status=status.HTTP_404_NOT_FOUND)
         
     
     def delete(self, request, album_id):
@@ -531,6 +512,26 @@ class AlbumView(APIView):
         except Album.DoesNotExist:
             return Response({"message": "Album not found."}, status=status.HTTP_404_NOT_FOUND)
 
+class DeletePhoto(APIView):
+    def delete(self, request, photo_id):
+        try:
+            photo = AlbumPhotos.objects.get(id=photo_id)
+
+            is_creator = photo.album.created_by == request.user
+            is_alumni_manager = request.user.groups.filter(name='Alumni_Manager').exists()
+            is_adminstrator = request.user.groups.filter(name='Administrator').exists()
+
+            if is_creator or is_alumni_manager or is_adminstrator:
+                photo.delete()
+                return Response({"message": "Photo deleted successfully."}, status=status.HTTP_200_OK)
+            else:
+                return Response(
+                    {"message": "You do not have permission to delete this photo."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except AlbumPhotos.DoesNotExist:
+            return Response({"message": "Photo not found."}, status=status.HTTP_404_NOT_FOUND)
+        
 class AlbumPhotosView(APIView):
     def get(self, request, album_id):
         try:

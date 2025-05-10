@@ -477,28 +477,21 @@ class AlbumView(APIView):
     def patch(self, request, album_id):
         try:
             album = Album.objects.get(id=album_id)
-            
-            serializer = AlbumSerializer(album, data=request.data, partial=True)
+
+            serializer = AlbumUpdateSerializer(album, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
 
-                if 'photos' in request.FILES:
-                    photos = request.FILES.getlist('photos') 
-                    for photo in photos:
-                        AlbumPhotos.objects.create(album=album, photo=photo)
-
                 return Response(
-                    {
-                        "message": "Album updated successfully."
-                    },
-                    status=status.HTTP_200_OK,
+                    {"message": "Album updated successfully."},
+                    status=status.HTTP_200_OK
                 )
+
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
         except Album.DoesNotExist:
             return Response({"message": "Album not found."}, status=status.HTTP_404_NOT_FOUND)
-
-
-        
+     
     def delete(self, request, photo_id):
         try:
             photo = AlbumPhotos.objects.get(id=photo_id)

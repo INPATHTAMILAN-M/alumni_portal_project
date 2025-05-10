@@ -204,7 +204,14 @@ class AlbumSerializer(serializers.ModelSerializer):
         model = Album
         fields = ['id', 'album_name', 'description', 'album_location', 'album_date', 
                   'public_view', 'created_on', 'created_by', 'photos']
-        
+
+class AlbumUpdateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Album
+        fields = ['id', 'album_name', 'description', 'album_location', 'album_date', 
+                  'public_view', 'created_on', 'created_by']
+         
 class MemoryTagsSerializer(serializers.ModelSerializer):
     class Meta:
         model = MemoryTags

@@ -15,6 +15,8 @@ class Memories(models.Model):
     approved = models.BooleanField(default=False)
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
 
+    def __str__(self):
+        return f"Memories of {self.year}-{self.month} by {self.created_by.username}"
 class Post(models.Model):
     title = models.CharField(max_length=255, blank=True, null=True)
     blog = models.CharField(max_length=255, blank=True, null=True)

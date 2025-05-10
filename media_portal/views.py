@@ -777,42 +777,6 @@ class MemoryView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    def delete(self, request, photo_id):
-        try:
-            photo = MemoryPhotos.objects.get(id=photo_id)
-        except MemoryPhotos.DoesNotExist:
-            return Response(
-                {"message": "Photo not found."},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        if not (photo.memory.created_by == request.user or request.user.groups.filter(name='Alumni_Manager').exists() or request.user.groups.filter(name='Administrator').exists()):
-            return Response( {"message": "You do not have permission to delete this photo."},status=status.HTTP_403_FORBIDDEN)
-
-        photo.delete()
-        return Response(
-            {"message": "Photo deleted successfully."},
-            status=status.HTTP_200_OK
-        )
-    
-    def delete(self, request, tag_id):
-        try:
-            tag = MemoryTags.objects.get(id=tag_id)
-        except MemoryTags.DoesNotExist:
-            return Response(
-                {"message": "Tag not found."},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        if not (tag.memory.created_by == request.user or request.user.groups.filter(name='Alumni_Manager').exists() or request.user.groups.filter(name='Administrator').exists()):
-            return Response( {"message": "You do not have permission to delete this photo."},status=status.HTTP_403_FORBIDDEN)
-
-        tag.delete()
-        return Response(
-            {"message": "Tag deleted successfully."},
-            status=status.HTTP_200_OK
-        )
-    
     def delete(self, request, memory_id):
         try:
             memory = Memories.objects.get(id=memory_id)
@@ -831,6 +795,59 @@ class MemoryView(APIView):
             status=status.HTTP_200_OK
         )
 
+class MemoryPhotosView(APIView):
+    def get(self, request, memory_id):
+        try:
+            memory = Memories.objects.get(id=memory_id)
+            photos = MemoryPhotos.objects.filter(memory=memory)
+            paginator = PageNumberPagination()
+            paginator.page_size = 12
+            paginated_photos = paginator.paginate_queryset(photos, request)
+
+            photo_list = [{"id": photo.id, "url": request.build_absolute_uri(photo.photo.url)} for photo in paginated_photos]
+
+            return paginator.get_paginated_response(photo_list)
+        except Memories.DoesNotExist:
+            return Response({"message": "Memory not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+class MemoryTagDelete(APIView):
+    def delete(self, request, tag_id):
+        try:
+            tag = MemoryTags.objects.get(id=tag_id)
+        except MemoryTags.DoesNotExist:
+            return Response(
+                {"message": "Tag not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if not (tag.memory.created_by == request.user or request.user.groups.filter(name='Alumni_Manager').exists() or request.user.groups.filter(name='Administrator').exists()):
+            return Response( {"message": "You do not have permission to delete this photo."},status=status.HTTP_403_FORBIDDEN)
+
+        tag.delete()
+        return Response(
+            {"message": "Tag deleted successfully."},
+            status=status.HTTP_200_OK
+        )
+        
+class MemoryPhotoDelete(APIView):
+    def delete(self, request, photo_id):
+        try:
+            photo = MemoryPhotos.objects.get(id=photo_id)
+        except MemoryPhotos.DoesNotExist:
+            return Response(
+                {"message": "Photo not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if not (photo.memory.created_by == request.user or request.user.groups.filter(name='Alumni_Manager').exists() or request.user.groups.filter(name='Administrator').exists()):
+            return Response( {"message": "You do not have permission to delete this photo."},status=status.HTTP_403_FORBIDDEN)
+
+        photo.delete()
+        return Response(
+            {"message": "Photo deleted successfully."},
+            status=status.HTTP_200_OK
+        )
+        
 class ApproveMemory(APIView):
     permission_classes = [IsAuthenticated]
     

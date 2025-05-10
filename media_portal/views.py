@@ -541,7 +541,7 @@ class AlbumPhotosView(APIView):
             paginated_photos = paginator.paginate_queryset(photos, request)
 
             # Each photo URL is wrapped in a dict
-            photo_list = [{"url": request.build_absolute_uri(photo.photo.url)} for photo in paginated_photos]
+            photo_list = [{"id": photo.id, "url": request.build_absolute_uri(photo.photo.url)} for photo in paginated_photos]
 
             return paginator.get_paginated_response(photo_list)
         except Album.DoesNotExist:

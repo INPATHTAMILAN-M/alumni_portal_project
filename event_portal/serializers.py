@@ -1,7 +1,19 @@
 from rest_framework import serializers
 from .models import *
 
+class QuestionCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Question
+        fields = ['id', 'question', 'help_text', 'options', 'is_faq', 'is_recommended']
 
+    def validate_question(self, value):
+        """
+        Ensure the question is unique to avoid duplication.
+        """
+        if Question.objects.filter(question=value).exists():
+            raise serializers.ValidationError("A question with this text already exists.")
+        return value
+    
 class QuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Question

@@ -538,6 +538,19 @@ class AlbumView(APIView):
         except Album.DoesNotExist:
             return Response({"message": "Album not found."}, status=status.HTTP_404_NOT_FOUND)
 
+class AlbumPhotosView(APIView):
+    def get(self, request, album_id):
+        try:
+            album = Album.objects.get(id=album_id)
+            photos = AlbumPhotos.objects.filter(album=album)
+            paginator = PageNumberPagination()
+            paginator.page_size = 10  # Set the number of items per page
+            paginated_photos = paginator.paginate_queryset(photos, request)
+            photo_urls = [request.build_absolute_uri(photo.photo.url) for photo in paginated_photos]
+            return paginator.get_paginated_response({"photos": photo_urls})
+        except Album.DoesNotExist:
+            return Response({"message": "Album not found."}, status=status.HTTP_404_NOT_FOUND)
+
 class SortingAlbums(APIView):
     def post(self, request, *args, **kwargs):
         sort_by = request.data.get('sort_by', None)

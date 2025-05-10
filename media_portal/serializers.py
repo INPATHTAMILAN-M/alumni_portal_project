@@ -232,10 +232,73 @@ class MemoryPhotosSerializer(serializers.ModelSerializer):
         if obj.photo:
             return self.context['request'].build_absolute_uri(obj.photo.url)
         return None
+class MemoryPostCommentSerializer(serializers.ModelSerializer):
+    comment_by = serializers.SerializerMethodField()
+
+    def get_comment_by(self, obj):
+        return {
+            "id": obj.comment_by.id,
+            "username": obj.comment_by.username,
+            "full_name": obj.comment_by.get_full_name(),
+        }
+
+    class Meta:
+        model = PostComment
+        fields = ['id', 'comment', 'comment_on', 'comment_by']
+
+
+class MemoryPostLikeSerializer(serializers.ModelSerializer):
+    liked_by = serializers.SerializerMethodField()
+
+    def get_liked_by(self, obj):
+        return {
+            "id": obj.liked_by.id,
+            "username": obj.liked_by.username,
+        }
+
+    class Meta:
+        model = PostLike
+        fields = ['id', 'liked_by']
+
+
+class MemoryPostSerializer(serializers.ModelSerializer):
+    post_comments = MemoryPostCommentSerializer(many=True, read_only=True)
+    post_likes = MemoryPostLikeSerializer(many=True, read_only=True)
+    post_comments_count = serializers.SerializerMethodField()
+    post_likes_count = serializers.SerializerMethodField()
+    is_liked_by_user = serializers.SerializerMethodField()
+
+    def get_post_comments_count(self, obj):
+        return obj.post_comments.count()
+
+    def get_post_likes_count(self, obj):
+        return obj.post_likes.count()
+
+    def get_is_liked_by_user(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.post_likes.filter(liked_by=request.user).exists()
+        return False
+
+    class Meta:
+        model = Post
+        fields = [
+            'id', 'title', 'content', 'published', 'visible_to_public', 'featured_image',
+            'posted_on', 'post_comments', 'post_likes',
+            'post_comments_count', 'post_likes_count', 'is_liked_by_user'
+        ]
 
 class MemorySerializer(serializers.ModelSerializer):
     created_by = serializers.SerializerMethodField()
-
+    tags = MemoryTagsSerializer(many=True, read_only=True, source='memorytags')  # Use related_name for source
+    photos = serializers.SerializerMethodField()
+    post = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Memories
+        fields = ['id', 'year', 'month', 'approved', 'tags', 'photos','created_on', 'created_by', 'post']
+        read_only_fields = ['approved']
+     
     def get_created_by(self, obj):
         try:
             member = obj.created_by.member
@@ -252,15 +315,13 @@ class MemorySerializer(serializers.ModelSerializer):
                 "dob": member.dob,
             }
         except (AttributeError, Member.DoesNotExist):
+            return None   
+    def get_post(self, obj):
+        try:
+            post = Post.objects.get(memories=obj)
+            return MemoryPostSerializer(post, context=self.context).data
+        except Post.DoesNotExist:
             return None
-    tags = MemoryTagsSerializer(many=True, read_only=True, source='memorytags')  # Use related_name for source
-    photos = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Memories
-        fields = ['id', 'year', 'month', 'approved', 'tags', 'photos','created_on', 'created_by']
-        read_only_fields = ['approved']
-        
     
     def get_photos(self, obj):
         """

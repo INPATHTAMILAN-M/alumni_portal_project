@@ -307,7 +307,7 @@ class EventByCategory(APIView):
 # Create question
 class QuestionCreateView(APIView):
     def post(self, request):
-        serializer = QuestionSerializer(data=request.data)
+        serializer = QuestionCreateSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)

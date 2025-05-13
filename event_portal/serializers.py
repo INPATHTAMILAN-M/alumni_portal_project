@@ -99,15 +99,23 @@ class EventActiveRetrieveSerializer(serializers.ModelSerializer):
     posted_by = serializers.CharField(source='posted_by.get_full_name', read_only=True)
     event_wallpaper = serializers.SerializerMethodField()
     event_question = serializers.SerializerMethodField()
-
+    is_registered = serializers.SerializerMethodField()
     class Meta:
         model = Event
         fields = [
             'id','title', 'category', 'start_date', 'start_time', 'venue', 'address', 'link', 'is_public',
             'need_registration', 'registration_close_date', 'description', 'event_wallpaper', 'instructions',
-            'posted_by', 'event_question'
+            'posted_by', 'event_question','is_active', 'is_registered'
         ]
 
+    def get_is_registered(self, obj):
+        """
+        Check if the user is registered for the event.
+        """
+        request = self.context.get('request')
+        user = request.user
+        return EventRegistration.objects.filter(event=obj, user=user).exists()
+    
     def get_event_wallpaper(self, obj):
         request = self.context.get('request')
         if obj.event_wallpaper:

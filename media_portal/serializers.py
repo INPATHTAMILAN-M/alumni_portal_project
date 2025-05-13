@@ -104,12 +104,13 @@ class PostSerializer(serializers.ModelSerializer):
     post_category = serializers.SerializerMethodField()
     member_id = serializers.SerializerMethodField()
     profile_photo = serializers.SerializerMethodField()
+    is_my_post = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
         fields = ['id', 'title', 'blog', 'post_category', 'content', 'published', 'visible_to_public', 'featured_image', 
                   'posted_on', 'posted_by', 'post_likes_count', 'post_comments_count', 'post_comments', 'post_likes', 
-                  'post_liked', 'member_id', 'profile_photo']
+                  'post_liked', 'member_id', 'profile_photo', 'is_my_post']
 
     def get_post_likes_count(self, obj):
         return obj.post_likes.count() if obj.post_likes else 0
@@ -149,6 +150,12 @@ class PostSerializer(serializers.ModelSerializer):
         except AttributeError:
             return None  # Return None if post_category is not present
         return None
+    def get_is_my_post(self, obj):
+        """
+        Check if the post belongs to the user making the request.
+        """
+        user = self.context['request'].user
+        return obj.posted_by == user
 
 
 class MemberBirthdaySerializer(serializers.ModelSerializer):

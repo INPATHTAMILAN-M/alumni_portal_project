@@ -222,9 +222,9 @@ class UpdateEvent(APIView):
     #     return Response(event_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     def patch(self, request, event_id):
         try:
-            event = Event.objects.get(id=event_id, posted_by=request.user)
+            event = Event.objects.get(id=event_id)
         except Event.DoesNotExist:
-            return Response({"error": "Event not found or permission denied."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Event not found"}, status=status.HTTP_404_NOT_FOUND)
 
         # Parse event_question from form-data (stringified JSON)
         try:

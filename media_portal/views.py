@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404, render
+from media_portal.filters.post_category_filter import PostCategoryFilterSet
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -16,10 +17,14 @@ from datetime import date
 from django.db.models import Q
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q, OuterRef, Subquery, Count
+from django_filters.rest_framework import DjangoFilterBackend
+
+
 class PostCategoryViewSet(viewsets.ModelViewSet):
     queryset = PostCategory.objects.all().order_by('-id')
     serializer_class = PostCategorySerializer
-
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = PostCategoryFilterSet
     #permission_classes = [IsAuthenticated]
 
     def delete(self, request, *args, **kwargs):

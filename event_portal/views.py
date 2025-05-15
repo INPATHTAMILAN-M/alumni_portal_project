@@ -124,7 +124,7 @@ class RetrieveEvent(APIView):
     def get(self, request):
         events = Event.objects.all().order_by('-posted_on')
         paginator = PageNumberPagination()
-        paginator.page_size = 10  # Set the number of items per page
+        paginator.page_size = 12  # Set the number of items per page
         paginated_events = paginator.paginate_queryset(events, request)
         serializer = EventRetrieveSerializer(paginated_events, many=True, context={'request': request})
         return paginator.get_paginated_response(serializer.data)
@@ -288,7 +288,7 @@ class ActiveEvent(APIView):
     def get(self, request):
         events = Event.objects.filter(is_active=True).order_by('-posted_on')
         paginator = PageNumberPagination()
-        paginator.page_size = 10  # Set the number of items per page
+        paginator.page_size = 12  # Set the number of items per page
         paginated_events = paginator.paginate_queryset(events, request)
         serializer = EventActiveRetrieveSerializer(paginated_events, many=True, context={'request': request})
         return paginator.get_paginated_response(serializer.data)

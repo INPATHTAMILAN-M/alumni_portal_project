@@ -536,7 +536,7 @@ class AlbumPhotosView(APIView):
     def get(self, request, album_id):
         try:
             album = Album.objects.get(id=album_id)
-            photos = AlbumPhotos.objects.filter(album=album)
+            photos = AlbumPhotos.objects.filter(album=album,approved=True)
             paginator = PageNumberPagination()
             paginator.page_size = 12
             paginated_photos = paginator.paginate_queryset(photos, request)
@@ -726,9 +726,9 @@ class MemoryView(APIView):
             except Memories.DoesNotExist:
                 return Response({"message": "Memory not found."}, status=status.HTTP_404_NOT_FOUND)
         else:
-            memories = Memories.objects.all()
+            memories = Memories.objects.all().order_by('-created_on')
             paginator = PageNumberPagination()
-            paginator.page_size = 10  # Set the number of items per page
+            paginator.page_size = 12  # Set the number of items per page
             paginated_memories = paginator.paginate_queryset(memories, request)
 
             all_memories_data = []
@@ -860,10 +860,13 @@ class ApproveMemory(APIView):
         if request.user.groups.filter(name='Alumni_Manager').exists() or request.user.groups.filter(name='Administrator').exists():
             memory.approved = True
             memory.save()
+            if MemoryPhotos.objects.filter(memory=memory).first():
+                featured_image = MemoryPhotos.objects.filter(memory=memory).first()
             Post.objects.create(
-                title=f"Memories created by {memory.created_by.first_name} {memory.created_by.last_name}",
+                # title=f"Memories created by {memory.created_by.first_name} {memory.created_by.last_name}",
                 memories=memory,
                 published=True,
+                featured_image=featured_image if featured_image else None,
                 posted_by=memory.created_by,
                 post_category=PostCategory.objects.get(name='Memories'),  # Assuming you have a category with ID 1 for memories
             )

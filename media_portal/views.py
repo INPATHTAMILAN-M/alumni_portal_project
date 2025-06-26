@@ -541,7 +541,7 @@ class AlbumPhotosView(APIView):
     def get(self, request, album_id):
         try:
             album = Album.objects.get(id=album_id)
-            photos = AlbumPhotos.objects.filter(album=album,approved=True)
+            photos = AlbumPhotos.objects.filter(album=album)#,approved=True
             paginator = PageNumberPagination()
             paginator.page_size = 12
             paginated_photos = paginator.paginate_queryset(photos, request)

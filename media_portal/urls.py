@@ -50,7 +50,8 @@ urlpatterns = [
     path('album/photos/<int:photo_id>/approve/', AlbumDetailView.as_view(), name='approve_album_photo'),
     path('albums/unapprovedphotos/', AlbumsWithUnapprovedPhotosView.as_view(), name='albums_unapproved_photos'),
     path('sorting_albums/', SortingAlbums.as_view(), name='sorting_albums'),
-
+    path('public_albums/', PublicAlbum.as_view(), name='public_albums'),
+    
     # manage memories
     path('creatememories/', MemoryView.as_view(), name='create_memories'),
     path('memories/<int:memory_id>/', MemoryView.as_view(), name='detail_memories'),

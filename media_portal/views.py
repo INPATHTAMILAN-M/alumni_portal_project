@@ -517,6 +517,19 @@ class AlbumView(APIView):
         except Album.DoesNotExist:
             return Response({"message": "Album not found."}, status=status.HTTP_404_NOT_FOUND)
 
+class PublicAlbum(APIView):
+    def get(self, request):
+        albums = Album.objects.filter(public_view=True).order_by('-created_on')
+        paginator = PageNumberPagination()
+        paginator.page_size = 12  # Set the number of items per page
+        paginated_albums = paginator.paginate_queryset(albums, request)
+        serialized_albums = AlbumSerializer(paginated_albums, many=True, context={'request': request}).data
+        for album in serialized_albums:
+            album_instance = Album.objects.get(id=album['id'])
+            album['created_on'] = album_instance.created_on
+            album['created_by'] = album_instance.created_by.username
+        return paginator.get_paginated_response(serialized_albums)
+        
 class DeletePhoto(APIView):
     def delete(self, request, photo_id):
         try:

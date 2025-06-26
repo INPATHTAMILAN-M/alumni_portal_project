@@ -709,7 +709,7 @@ class TicketFilterView(APIView):
             filters &= Q(due_date=due_date)
 
         # Apply the filters in a single query
-        if request.user.groups.name == 'Faculty':
+        if request.user.groups.all().filter(name='Faculty').exists():
             assigned_tickets = TicketAssignment.objects.filter(assigned_to=request.user, ticket__status__status="Assigned")
             queryset = Ticket.objects.filter(filters, id__in=assigned_tickets.values_list('ticket_id', flat=True))
         else:

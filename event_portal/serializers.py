@@ -57,7 +57,8 @@ class EventRetrieveSerializer(serializers.ModelSerializer):
     posted_by = serializers.CharField(source='posted_by.get_full_name', read_only=True)
     event_wallpaper = serializers.SerializerMethodField()
     event_question = serializers.SerializerMethodField()
-
+    is_owner = serializers.SerializerMethodField()
+    is_admin = serializers.SerializerMethodField()
     class Meta:
         model = Event
         fields = [
@@ -66,6 +67,28 @@ class EventRetrieveSerializer(serializers.ModelSerializer):
             'posted_by', 'event_question','is_active'
         ]
 
+    def get_is_owner(self, obj):
+        """
+        Check if the user making the request is the owner of the album.
+        """
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            user = request.user
+            if obj.posted_by == user:
+                return True
+            if user.groups.filter(name__in=['Administrator', 'Alumni_Manager']).exists():
+                return True
+        return False
+    
+    def get_is_admin(self, obj):
+
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            user = request.user
+            if user.groups.filter(name__in=['Administrator', 'Alumni_Manager']).exists():
+                return True
+        return False
+    
     def get_event_wallpaper(self, obj):
         request = self.context.get('request')
         if obj.event_wallpaper:

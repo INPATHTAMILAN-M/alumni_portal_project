@@ -206,15 +206,31 @@ class AlbumPhotoSerializer(serializers.ModelSerializer):
         fields = ['id', 'photo', 'uploaded_on', 'approved']
 
 class AlbumSerializer(serializers.ModelSerializer):
-    photos = AlbumPhotoSerializer(many=True, read_only=True, source='albumphotos_set')
-
+    photos = serializers.SerializerMethodField()
+    is_owner = serializers.SerializerMethodField()
     class Meta:
         model = Album
         fields = ['id', 'album_name', 'description', 'album_location', 'album_date', 
-                  'public_view', 'created_on', 'created_by', 'photos']
+                  'public_view', 'created_on', 'created_by', 'photos', 'is_owner']
+    
+    def get_photos(self, obj):
+        approved_photos = obj.albumphotos_set.filter(approved=True)
+        return AlbumPhotoSerializer(approved_photos, many=True, context=self.context).data
+    
+    def get_is_owner(self, obj):
+        """
+        Check if the user making the request is the owner of the album.
+        """
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            user = request.user
+            if obj.created_by == user:
+                return True
+            if user.groups.filter(name__in=['Administrator', 'Alumni_Manager']).exists():
+                return True
+        return False
 
 class AlbumUpdateSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Album
         fields = ['id', 'album_name', 'description', 'album_location', 'album_date', 
@@ -300,12 +316,23 @@ class MemorySerializer(serializers.ModelSerializer):
     tags = MemoryTagsSerializer(many=True, read_only=True, source='memorytags')  # Use related_name for source
     photos = serializers.SerializerMethodField()
     post = serializers.SerializerMethodField()
-    
+    is_admin = serializers.SerializerMethodField()
     class Meta:
         model = Memories
-        fields = ['id', 'year', 'month', 'approved', 'tags', 'photos','created_on', 'created_by', 'post']
+        fields = ['id', 'year', 'month', 'approved', 'tags', 'photos','created_on', 'created_by', 'post', 'is_admin']
         read_only_fields = ['approved']
-     
+
+    def get_is_admin(self, obj):
+        """
+        Check if the user making the request is an admin.
+        """
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            user = request.user
+            if user.groups.filter(name__in=['Administrator', 'Alumni_Manager']).exists():
+                return True
+        return False
+        
     def get_created_by(self, obj):
         try:
             if hasattr(obj.created_by, 'member'):

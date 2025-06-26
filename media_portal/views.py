@@ -467,7 +467,7 @@ class AlbumView(APIView):
             except Album.DoesNotExist:
                 return Response({"message": "Album not found."}, status=status.HTTP_404_NOT_FOUND)
         else:
-            albums = Album.objects.filter(created_by=request.user).order_by('-created_on')
+            albums = Album.objects.all().order_by('-created_on')
             paginator = PageNumberPagination()
             paginator.page_size = 12  # Set the number of items per page
             paginated_albums = paginator.paginate_queryset(albums, request)

@@ -1092,7 +1092,7 @@ class CreatingUser(APIView):
         last_name = request.data.get('last_name')
         password = request.data.get('password')
         member_id = request.data.get('member_id')
-        # Fetch the member object
+        
         try:
             member = Member.objects.get(id=member_id)
         except Member.DoesNotExist:

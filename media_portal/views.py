@@ -541,7 +541,10 @@ class AlbumPhotosView(APIView):
     def get(self, request, album_id):
         try:
             album = Album.objects.get(id=album_id)
-            photos = AlbumPhotos.objects.filter(album=album)#,approved=True
+            if album.created_by != request.user or not request.user.groups.filter(name='Alumni_Manager').exists() or not request.user.groups.filter(name='Administrator').exists():
+                photos = AlbumPhotos.objects.filter(album=album)#,approved=True
+            else:
+                photos = AlbumPhotos.objects.filter(album=album, approved=True)
             paginator = PageNumberPagination()
             paginator.page_size = 12
             paginated_photos = paginator.paginate_queryset(photos, request)

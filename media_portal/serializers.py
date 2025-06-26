@@ -311,7 +311,8 @@ class MemoryPostSerializer(serializers.ModelSerializer):
     post_comments_count = serializers.SerializerMethodField()
     post_likes_count = serializers.SerializerMethodField()
     is_liked_by_user = serializers.SerializerMethodField()
-
+    posted_by = serializers.SerializerMethodField()
+    
     def get_post_comments_count(self, obj):
         return obj.post_comments.count()
 
@@ -331,6 +332,32 @@ class MemoryPostSerializer(serializers.ModelSerializer):
             'posted_on', 'posted_by','post_comments', 'post_likes',
             'post_comments_count', 'post_likes_count', 'is_liked_by_user'
         ]
+        
+    def get_created_by(self, obj):
+        try:
+            if hasattr(obj.created_by, 'member'):
+                member = obj.created_by.member
+                return {
+                    "id": member.id,
+                    "fullname": member.user.get_full_name(),
+                    "email": member.email,
+                    "profile_picture": self.context['request'].build_absolute_uri(member.profile_picture.url) if member.profile_picture else None,
+                    "batch": member.batch.end_year if member.batch else None,
+                    "course": member.course.department.short_name if member.course and member.course.department else None,
+                    "department": member.department.short_name if member.department else None,
+                    "mobile_no": member.mobile_no,
+                    "gender": member.gender,
+                    "dob": member.dob,
+                }
+            else:
+                user = obj.created_by
+                return {
+                    "id": user.id,
+                    "fullname": user.get_full_name(),
+                    "email": user.email,
+                }
+        except AttributeError:
+            return None
 
 class MemorySerializer(serializers.ModelSerializer):
     created_by = serializers.SerializerMethodField()

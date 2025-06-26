@@ -712,64 +712,74 @@ class EmailSelectedMembers(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        # Retrieve member_ids from form-data (as a string)
-        member_ids_str = request.data.get('member_ids', '')
+        member_ids_str = request.data.get('member_ids', '').strip()
 
-        # If member_ids is not empty, process it
-        if member_ids_str:
-            try:
-                # Split the string into a list and convert to integers
-                member_ids = [int(id.strip()) for id in member_ids_str.split(',')]
-            except ValueError:
-                return Response({"error": "Invalid member IDs format. Please provide a list of integers."}, status=status.HTTP_400_BAD_REQUEST)
-        else:
+        if not member_ids_str:
             return Response({"error": "No member IDs provided."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Fetch the members based on the provided IDs
+        try:
+            member_ids = [int(id.strip()) for id in member_ids_str.split(',') if id.strip()]
+        except ValueError:
+            return Response({"error": "Invalid member IDs format. Please provide a comma-separated list of integers."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
         members = Member.objects.filter(id__in=member_ids)
 
         if not members.exists():
             return Response({"error": "No members found with the provided IDs."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Get the subject and message from the request
-        subject = request.data.get('subject')
-        message = request.data.get('message')
-        file = request.FILES.get('file', None)
+        event_id = request.data.get('event')
+        subject = request.data.get('subject', '').strip()
+        message = request.data.get('message', '').strip()
+        file = request.FILES.get('file')
+        name_check = request.data.get('name_checkbox', 'false').lower() == 'true'
 
-        # Ensure subject and message are provided
-        if not subject or not message:
-            return Response({"error": "Subject and message are required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not event_id or not subject or not message:
+            return Response({"error": "Event, subject, and message are required fields."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        event = get_object_or_404(Event, id=event_id)
 
         responses = []
 
-        # Loop through the members and send email to each one
         for member in members:
-            recipient_email = member.email if member else None
+            recipient_email = member.email
+            recipient_name = member.user.get_full_name()
 
-            if recipient_email:
-                # Create the email message
-                email = EmailMessage(
-                    subject=subject,
-                    body=message,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    to=[recipient_email],
-                )
+            context = {
+                'name_check': name_check,
+                'subject': subject,
+                'message': message,
+                'recipient_name': recipient_name,
+                'event_title': event.title,
+                'event_date': event.start_date.strftime("%A, %d %b %Y"),
+                'event_time': event.start_time.strftime("%I:%M %p"),
+                'event_venue': event.venue,
+                'event_link': "http://alumni.decodeschool.com/",
+                'contact_person': "Admin",
+                'contact_id': "Admin@gmail.com",
+            }
 
-                # Attach file if provided
-                if file:
-                    email.attach(file.name, file.read(), file.content_type)
+            html_content = render_to_string('email_template.html', context)
 
-                try:
-                    # Send email
-                    email.send()
-                    responses.append({"status": f"Email sent successfully to {recipient_email}."})
-                except Exception as e:
-                    responses.append({"status": f"Failed to send email to {recipient_email}", "error": str(e)})
-            else:
-                responses.append({"status": f"No email found for member {member.id}."})
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[recipient_email],
+            )
+            email.attach_alternative(html_content, "text/html")
+
+            if file:
+                email.attach(file.name, file.read(), file.content_type)
+
+            try:
+                email.send()
+                responses.append({"email": recipient_email, "status": "sent"})
+            except Exception as e:
+                responses.append({"email": recipient_email, "status": "failed", "error": str(e)})
 
         return Response(responses, status=status.HTTP_200_OK)
-
 
 # export event data
 class ExportEvent(APIView):

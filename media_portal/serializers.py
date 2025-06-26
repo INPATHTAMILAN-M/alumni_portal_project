@@ -213,7 +213,7 @@ class AlbumSerializer(serializers.ModelSerializer):
     class Meta:
         model = Album
         fields = ['id', 'album_name', 'description', 'album_location', 'album_date', 
-                  'public_view', 'created_on', 'created_by', 'photos', 'is_owner']
+                  'public_view', 'created_on', 'created_by', 'photos', 'is_owner','is_admin']
     
     def get_photos(self, obj):
         request = self.context.get('request')

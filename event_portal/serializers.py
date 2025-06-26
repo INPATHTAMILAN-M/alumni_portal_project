@@ -123,14 +123,39 @@ class EventActiveRetrieveSerializer(serializers.ModelSerializer):
     event_wallpaper = serializers.SerializerMethodField()
     event_question = serializers.SerializerMethodField()
     is_registered = serializers.SerializerMethodField()
+    is_owner = serializers.SerializerMethodField()
+    is_admin = serializers.SerializerMethodField()
+    
     class Meta:
         model = Event
         fields = [
             'id','title', 'category', 'start_date', 'start_time', 'venue', 'address', 'link', 'is_public',
             'need_registration', 'registration_close_date', 'description', 'event_wallpaper', 'instructions',
-            'posted_by', 'event_question','is_active', 'is_registered'
+            'posted_by', 'event_question','is_active', 'is_registered','is_owner','is_admin'
         ]
 
+    def get_is_owner(self, obj):
+        """
+        Check if the user making the request is the owner of the album.
+        """
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            user = request.user
+            if obj.posted_by == user:
+                return True
+            if user.groups.filter(name__in=['Administrator', 'Alumni_Manager']).exists():
+                return True
+        return False
+    
+    def get_is_admin(self, obj):
+
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            user = request.user
+            if user.groups.filter(name__in=['Administrator', 'Alumni_Manager']).exists():
+                return True
+        return False
+    
     def get_is_registered(self, obj):
         """
         Check if the user is registered for the event.

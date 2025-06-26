@@ -328,7 +328,7 @@ class MemoryPostSerializer(serializers.ModelSerializer):
         model = Post
         fields = [
             'id', 'title', 'content', 'published', 'visible_to_public', 'featured_image',
-            'posted_on', 'post_comments', 'post_likes',
+            'posted_on', 'posted_by','post_comments', 'post_likes',
             'post_comments_count', 'post_likes_count', 'is_liked_by_user'
         ]
 

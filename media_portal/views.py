@@ -891,12 +891,12 @@ class ApproveMemory(APIView):
             memory.approved = True
             memory.save()
             if MemoryPhotos.objects.filter(memory=memory).first():
-                featured_image = MemoryPhotos.objects.filter(memory=memory).first()
+                photo = MemoryPhotos.objects.filter(memory=memory).first()
             Post.objects.create(
                 # title=f"Memories created by {memory.created_by.first_name} {memory.created_by.last_name}",
                 memories=memory,
                 published=True,
-                featured_image=featured_image if featured_image else None,
+                featured_image=photo.photo if photo.photo else None,
                 posted_by=memory.created_by,
                 post_category=PostCategory.objects.get(name='Memories'),  # Assuming you have a category with ID 1 for memories
             )

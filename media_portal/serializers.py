@@ -325,9 +325,10 @@ class MemorySerializer(serializers.ModelSerializer):
     photos = serializers.SerializerMethodField()
     post = serializers.SerializerMethodField()
     is_admin = serializers.SerializerMethodField()
+    is_owner = serializers.SerializerMethodField()
     class Meta:
         model = Memories
-        fields = ['id', 'year', 'month', 'approved', 'tags', 'photos','created_on', 'created_by', 'post', 'is_admin']
+        fields = ['id', 'year', 'month', 'approved', 'tags', 'photos','created_on', 'created_by', 'post', 'is_admin', 'is_owner']
         read_only_fields = ['approved']
 
     def get_is_admin(self, obj):
@@ -340,7 +341,20 @@ class MemorySerializer(serializers.ModelSerializer):
             if user.groups.filter(name__in=['Administrator', 'Alumni_Manager']).exists():
                 return True
         return False
-        
+    
+    def get_is_owner(self, obj):
+        """
+        Check if the user making the request is the owner of the album.
+        """
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            user = request.user
+            if obj.created_by == user:
+                return True
+            if user.groups.filter(name__in=['Administrator', 'Alumni_Manager']).exists():
+                return True
+        return False
+    
     def get_created_by(self, obj):
         try:
             if hasattr(obj.created_by, 'member'):

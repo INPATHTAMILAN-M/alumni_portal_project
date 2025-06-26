@@ -333,7 +333,7 @@ class MemoryPostSerializer(serializers.ModelSerializer):
             'post_comments_count', 'post_likes_count', 'is_liked_by_user'
         ]
         
-    def get_created_by(self, obj):
+    def get_posted_by(self, obj):
         try:
             if hasattr(obj.created_by, 'member'):
                 member = obj.created_by.member

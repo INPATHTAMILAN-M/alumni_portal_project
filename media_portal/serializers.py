@@ -214,7 +214,15 @@ class AlbumSerializer(serializers.ModelSerializer):
                   'public_view', 'created_on', 'created_by', 'photos', 'is_owner']
     
     def get_photos(self, obj):
-        approved_photos = obj.albumphotos_set.filter(approved=True)
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            user = request.user
+            if obj.created_by == user:
+                approved_photos = obj.albumphotos_set.all()
+            elif user.groups.filter(name__in=['Administrator', 'Alumni_Manager']).exists():
+                approved_photos = obj.albumphotos_set.all()
+            else:
+                approved_photos = obj.albumphotos_set.filter(approved=True)
         return AlbumPhotoSerializer(approved_photos, many=True, context=self.context).data
     
     def get_is_owner(self, obj):
@@ -285,8 +293,8 @@ class MemoryPostLikeSerializer(serializers.ModelSerializer):
 
 
 class MemoryPostSerializer(serializers.ModelSerializer):
-    post_comments = MemoryPostCommentSerializer(many=True, read_only=True)
-    post_likes = MemoryPostLikeSerializer(many=True, read_only=True)
+    post_comments = PostCommentSerializer(many=True, read_only=True)
+    post_likes = PostLikeSerializer(many=True, read_only=True)
     post_comments_count = serializers.SerializerMethodField()
     post_likes_count = serializers.SerializerMethodField()
     is_liked_by_user = serializers.SerializerMethodField()

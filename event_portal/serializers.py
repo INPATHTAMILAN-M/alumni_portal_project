@@ -64,7 +64,7 @@ class EventRetrieveSerializer(serializers.ModelSerializer):
         fields = [
             'id','title','category_id', 'category', 'start_date', 'start_time', 'venue', 'address', 'link', 'is_public',
             'need_registration', 'registration_close_date', 'description', 'event_wallpaper', 'instructions',
-            'posted_by', 'event_question','is_active'
+            'posted_by', 'event_question','is_active', 'is_owner', 'is_admin'
         ]
 
     def get_is_owner(self, obj):

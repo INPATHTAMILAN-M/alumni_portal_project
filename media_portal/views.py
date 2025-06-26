@@ -565,8 +565,14 @@ class AlbumPhotosView(APIView):
                 is_admin = True
             else:
                 is_admin = False
+            
+            if album.created_by == request.user or request.user.groups.filter(name='Alumni_Manager').exists() or request.user.groups.filter(name='Administrator').exists():
+                is_owner = True
+            else:
+                is_owner = False
+                
             # Each photo URL is wrapped in a dict
-            photo_list = [{"id": photo.id, "url": request.build_absolute_uri(photo.photo.url),"approved": photo.approved,"is_admin": is_admin} for photo in paginated_photos]
+            photo_list = [{"id": photo.id, "url": request.build_absolute_uri(photo.photo.url),"approved": photo.approved,"is_admin": is_admin,"is_owner": is_owner} for photo in paginated_photos]
 
             return paginator.get_paginated_response(photo_list)
         except Album.DoesNotExist:

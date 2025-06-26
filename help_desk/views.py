@@ -709,7 +709,11 @@ class TicketFilterView(APIView):
             filters &= Q(due_date=due_date)
 
         # Apply the filters in a single query
-        queryset = Ticket.objects.filter(filters)
+        if request.user.groups.name == 'Faculty':
+            assigned_tickets = TicketAssignment.objects.filter(assigned_to=request.user, ticket__status__status="Assigned")
+            queryset = Ticket.objects.filter(filters, id__in=assigned_tickets.values_list('ticket_id', flat=True))
+        else:
+            queryset = Ticket.objects.filter(filters)
 
         # Apply pagination
         paginator = PageNumberPagination()

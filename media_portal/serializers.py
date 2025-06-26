@@ -208,6 +208,8 @@ class AlbumPhotoSerializer(serializers.ModelSerializer):
 class AlbumSerializer(serializers.ModelSerializer):
     photos = serializers.SerializerMethodField()
     is_owner = serializers.SerializerMethodField()
+    is_admin = serializers.SerializerMethodField()
+    
     class Meta:
         model = Album
         fields = ['id', 'album_name', 'description', 'album_location', 'album_date', 
@@ -234,6 +236,17 @@ class AlbumSerializer(serializers.ModelSerializer):
             user = request.user
             if obj.created_by == user:
                 return True
+            if user.groups.filter(name__in=['Administrator', 'Alumni_Manager']).exists():
+                return True
+        return False
+    
+    def get_is_admin(self, obj):
+        """
+        Check if the user making the request is the owner of the album.
+        """
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            user = request.user
             if user.groups.filter(name__in=['Administrator', 'Alumni_Manager']).exists():
                 return True
         return False

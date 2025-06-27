@@ -629,7 +629,7 @@ class EmailAttendees(APIView):
             return Response({"error": "Subject is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         for registration in registrations:
-            recipient_name = registration.user.get_full_name() if name_check else "Alumni"
+            recipient_name = registration.user.get_full_name() if registration.user.get_full_name() else registration.user.email
             
             # Prepare context for the template
             context = {
@@ -744,7 +744,7 @@ class EmailSelectedMembers(APIView):
 
         for member in members:
             recipient_email = member.email
-            recipient_name = member.user.get_full_name()
+            recipient_name = member.user.get_full_name() if member.user.get_full_name() else member.email
 
             context = {
                 'name_check': name_check,

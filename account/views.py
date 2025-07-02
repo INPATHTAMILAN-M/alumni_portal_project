@@ -1183,9 +1183,7 @@ class ShowMemberData(APIView):
             member.user.last_name = request.data.get('last_name') or member.user.last_name
             member.user.email = member.email
             member.user.save()
-        else:
-            return Response({'error': 'User not found for this member'}, status=status.HTTP_404_NOT_FOUND)
-
+        
         # Save the updated member
         member.save()
 

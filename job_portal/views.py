@@ -390,9 +390,15 @@ class CreateBusinessDirectory(APIView):
         business_directory.save()
         return Response({"message": "Business directory entry created successfully"}, status=status.HTTP_201_CREATED)
 
+    def delete(self,request,directory_id):
+        business = BusinessDirectory.objects.get(id=directory_id)
+        business.delete()
+        return Response({"message": "Business directory deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
 class RetrieveBusinessDirectory(APIView):
     permission_classes = [IsAuthenticated]
 
+    
     def get(self, request):
         try:
             business_directories = BusinessDirectory.objects.all()
@@ -566,6 +572,7 @@ class DetailBusinessDirectory(APIView):
             return Response({"message": "Business directory not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 # filter job post
 

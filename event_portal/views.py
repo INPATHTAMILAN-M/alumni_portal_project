@@ -707,7 +707,7 @@ class TestEmail(APIView):
         except Exception as e:
             return Response({"status": "Failed to send email", "error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
+from bs4 import BeautifulSoup
 class EmailSelectedMembers(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -731,6 +731,8 @@ class EmailSelectedMembers(APIView):
         event_id = request.data.get('event')
         subject = request.data.get('subject', '').strip()
         message = request.data.get('message', '').strip()
+        soup = BeautifulSoup(message, 'html.parser')
+        plain_text = soup.get_text(separator='\n')
         file = request.FILES.get('file')
         name_check = request.data.get('name_checkbox', 'false').lower() == 'true'
 
@@ -749,7 +751,7 @@ class EmailSelectedMembers(APIView):
             context = {
                 'name_check': name_check,
                 'subject': subject,
-                'message': message,
+                'message': plain_text,
                 'recipient_name': recipient_name,
                 'event_title': event.title,
                 'event_date': event.start_date.strftime("%A, %d %b %Y"),
@@ -764,7 +766,7 @@ class EmailSelectedMembers(APIView):
 
             email = EmailMultiAlternatives(
                 subject=subject,
-                body=message,
+                body=plain_text,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 to=[recipient_email],
             )

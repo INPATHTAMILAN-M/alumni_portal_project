@@ -22,6 +22,7 @@ urlpatterns = [
     path('retrieve_business_directory/', RetrieveBusinessDirectory.as_view(), name='retrieve_business_directory'),
     path('my_business_directory/', MyBusinessDirectory.as_view(), name='my_business_directory'),
     path('update_business_directory/<int:directory_id>/', UpdateBusinessDirectory.as_view(), name='update_business_directory'),
+    path('delete_business_directory/<int:directory_id>/', CreateBusinessDirectory.as_view(), name='create_business_directory'),
     path('detail_business_directory/<int:directory_id>/', DetailBusinessDirectory.as_view(), name='detail_business_directory'),
 
     # filter

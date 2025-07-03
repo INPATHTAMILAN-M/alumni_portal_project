@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -282,7 +282,7 @@ class AssignedUsersForTicket(APIView):
         return paginator.get_paginated_response({"assigned_users": assigned_users})
     
 # assign tickets to faculty
-import datetime
+
 class TicketAssignTo(APIView):
     # permission_classes = [IsAuthenticated]
 
@@ -380,7 +380,7 @@ class ResponceTicketAssignment(APIView):
             # if ticket_assignment.assigned_to != request.user:
             #     return Response({"error": "You do not have permission to update this assignment"}, status=status.HTTP_403_FORBIDDEN)
             ticket_assignment.response = responce
-            ticket_assignment.respond_on = datetime.now()
+            ticket_assignment.respond_on = datetime.datetime.now()
             ticket_assignment.save()
             # -------------------------------- if all assignments are responded
             total_assignments = TicketAssignment.objects.filter(ticket=ticket_assignment.ticket).count()
@@ -617,7 +617,7 @@ class TicketStatusUpdate(APIView):
 
             # Update the last status date only if status changed
             if status_changed:
-                ticket.last_status_on = datetime.now()
+                ticket.last_status_on = datetime.datetime.now()
 
             ticket.save()
         

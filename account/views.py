@@ -916,10 +916,10 @@ class RegisterUsers(APIView):
             elif member.user.groups.filter(name='Alumni').exists():
                 return Response({'error': 'You have already registered'}, status=status.HTTP_400_BAD_REQUEST)
 
-        
         # Generate OTP
         otp = random.randint(100000, 999999)
-
+        OTP.objects.create(member=member, code=otp)
+        
         # Send OTP to email
         send_mail(
             'Your OTP Code',
@@ -940,7 +940,33 @@ class RegisterUsers(APIView):
                          
             }, status=status.HTTP_200_OK)
 
+class VerifyOTP(APIView):
+    def post(self, request):
+        member_id = request.data.get('member_id')
+        otp_code = request.data.get('otp')
 
+        try:
+            member = Member.objects.get(id=member_id)
+        except Member.DoesNotExist:
+            return Response({'error': 'Invalid member ID'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if member.otp_verified:
+            return Response({'message': 'OTP already verified'}, status=status.HTTP_200_OK)
+        
+        try:
+            otp_record = OTP.objects.filter(member=member, code=otp_code).latest('created_at')
+        except OTP.DoesNotExist:
+            return Response({'error': 'Invalid OTP'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if otp_record.is_expired():
+            return Response({'error': 'OTP has expired'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Mark OTP as verified
+        member.otp_verified = True
+        member.save()
+
+        return Response({'message': 'OTP verified successfully'}, status=status.HTTP_200_OK)
+        
 class CreateOwnMember(APIView):
     
     def post(self, request):

@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User,Group
+from django.utils import timezone
+import datetime
 
 class Salutation(models.Model):
     salutation = models.CharField(max_length=10, null=False)
@@ -130,7 +132,8 @@ class Member(models.Model):
     file = models.FileField(upload_to='proofs/',null=True, blank=True)
     register_no = models.CharField(max_length=25, null=True, blank=True)
     is_approve = models.BooleanField(default=False)
-
+    otp_verified = models.BooleanField(default=False)
+    
     def __str__(self):
         # If user is not null and has groups
         if self.user:
@@ -138,6 +141,14 @@ class Member(models.Model):
             return f'{self.email} | {self.batch} | {self.course} | {group_names}'
         else:
             return f'{self.email} | {self.batch} | {self.course}'
+
+class OTP(models.Model):
+    member = models.ForeignKey(Member, on_delete=models.CASCADE)
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def is_expired(self):
+        return timezone.now() > self.created_at + datetime.timedelta(minutes=5)
 
 class Member_Skills(models.Model):
     member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='skills')

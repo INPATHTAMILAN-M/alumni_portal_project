@@ -455,7 +455,7 @@ class ResponcedTicket(APIView):
 
     def get(self, request):
         # Get the assigned ticket assignments for the authenticated user
-        assigned_tickets = TicketAssignment.objects.filter(ticket__status__status="Replied")
+        assigned_tickets = TicketAssignment.objects.filter(ticket__status__status="Replied").order_by('-respond_on')
 
         # Use a dictionary to hold unique tickets
         unique_tickets = {}

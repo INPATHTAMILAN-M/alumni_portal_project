@@ -934,7 +934,7 @@ class RegisterUsers(APIView):
         # request.session['member_id'] = member.id
 
         return Response({
-            'otp':otp,
+            # 'otp':otp,
             'message': 'OTP sent to email',
             'member_id': member.id
                          
@@ -964,7 +964,7 @@ class VerifyOTP(APIView):
         # Mark OTP as verified
         member.otp_verified = True
         member.save()
-
+        OTP.objects.filter(created_at__lt=timezone.now() - datetime.timedelta(minutes=5)).delete()
         return Response({'message': 'OTP verified successfully'}, status=status.HTTP_200_OK)
         
 class CreateOwnMember(APIView):

@@ -24,6 +24,7 @@ urlpatterns = [
 
     # alumni registration process
     path('register_user/', RegisterUsers.as_view(), name='register_user'),
+    path('verify_otp/', VerifyOTP.as_view(), name='verify_otp'),
     path('creating_user/',CreatingUser.as_view(),name='creating_user'),
     path('member_data/<int:member_id>/',ShowMemberData.as_view(),name='member_data'),
     path('own_member/',CreateOwnMember.as_view(),name='own_member'),

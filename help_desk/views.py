@@ -282,6 +282,7 @@ class AssignedUsersForTicket(APIView):
         return paginator.get_paginated_response({"assigned_users": assigned_users})
     
 # assign tickets to faculty
+import datetime
 class TicketAssignTo(APIView):
     # permission_classes = [IsAuthenticated]
 
@@ -294,7 +295,7 @@ class TicketAssignTo(APIView):
             ticket = Ticket.objects.get(id=ticket_id)
             ticket_status = get_object_or_404(TicketStatus, status='Assigned')
             ticket.status = ticket_status
-            ticket.last_status_on = datetime.now()
+            ticket.last_status_on =  datetime.datetime.now()
             ticket.save()
         except Ticket.DoesNotExist:
             return Response({"error": "Invalid ticket ID"}, status=status.HTTP_400_BAD_REQUEST)

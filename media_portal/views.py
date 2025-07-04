@@ -54,6 +54,9 @@ class PostViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if self.request.user.groups.filter(name='Administrator').exists() or self.request.user.groups.filter(name='Alumni_Manager').exists():
+            return Post.objects.all()
+        
         return Post.objects.filter(posted_by=self.request.user)
 
     def perform_create(self, serializer):

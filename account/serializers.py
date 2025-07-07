@@ -62,9 +62,9 @@ class LocationSerializer(serializers.ModelSerializer):
         fields = ['id', 'location']    
            
 class MemberEducationSerializer(serializers.ModelSerializer): 
-    member = MemberListSerializer(read_only=True)
-    institute = InstitutionSerializer(read_only=True)
-    location = LocationSerializer(read_only=True)
+    member = MemberListSerializer()
+    institute = InstitutionSerializer()
+    location = LocationSerializer()
     
     class Meta:
         model = Member_Education
@@ -80,10 +80,10 @@ class RoleSerializer(serializers.ModelSerializer):
         model = Role
         fields = ['id', 'role']  # Adjust this to match your model fields
 class MemberExperienceSerializer(serializers.ModelSerializer):
-    member = MemberListSerializer(read_only=True)
-    location = LocationSerializer(read_only=True)
-    industry = IndustrySerializer(read_only=True)
-    role = RoleSerializer(read_only=True)
+    member = MemberListSerializer()
+    location = LocationSerializer()
+    industry = IndustrySerializer()
+    role = RoleSerializer()
     class Meta:
         model = Member_Experience
         fields = ['id', 'member', 'industry', 'role', 'start_date', 'end_date', 'is_currently_working', 'location']

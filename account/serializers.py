@@ -61,11 +61,16 @@ class LocationSerializer(serializers.ModelSerializer):
         model = Location
         fields = ['id', 'location']    
            
-class MemberEducationSerializer(serializers.ModelSerializer): 
-    member = MemberListSerializer()
-    institute = InstitutionSerializer()
-    location = LocationSerializer()
+class MemberEducationRetrieveSerializer(serializers.ModelSerializer): 
+    member = MemberListSerializer(read_only=True)
+    institute = InstitutionSerializer(read_only=True)
+    location = LocationSerializer(read_only=True)
     
+    class Meta:
+        model = Member_Education
+        fields = ['id', 'member', 'institute', 'degree', 'start_year', 'end_year', 'is_currently_pursuing', 'location']
+
+class MemberEducationCreateSerializer(serializers.ModelSerializer): 
     class Meta:
         model = Member_Education
         fields = ['id', 'member', 'institute', 'degree', 'start_year', 'end_year', 'is_currently_pursuing', 'location']
@@ -79,11 +84,17 @@ class RoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role
         fields = ['id', 'role']  # Adjust this to match your model fields
-class MemberExperienceSerializer(serializers.ModelSerializer):
-    member = MemberListSerializer()
-    location = LocationSerializer()
-    industry = IndustrySerializer()
-    role = RoleSerializer()
+        
+class MemberExperienceRetrieveSerializer(serializers.ModelSerializer):
+    member = MemberListSerializer(read_only=True)
+    location = LocationSerializer(read_only=True)
+    industry = IndustrySerializer(read_only=True)
+    role = RoleSerializer(read_only=True)
+    class Meta:
+        model = Member_Experience
+        fields = ['id', 'member', 'industry', 'role', 'start_date', 'end_date', 'is_currently_working', 'location']
+        
+class MemberExperienceCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Member_Experience
         fields = ['id', 'member', 'industry', 'role', 'start_date', 'end_date', 'is_currently_working', 'location']

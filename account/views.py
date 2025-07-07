@@ -1855,7 +1855,7 @@ class CreateMemberEducation(APIView):
     # permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        serializer = MemberEducationSerializer(data=request.data)
+        serializer = MemberEducationCreateSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             member_education = serializer
@@ -1900,7 +1900,7 @@ class UpdateMemberEducation(APIView):
     def get(self, request, education_id):
         try:
             education_record = Member_Education.objects.get(id=education_id)
-            serializer = MemberEducationSerializer(education_record)  # No many=True since it's a single instance
+            serializer = MemberEducationRetrieveSerializer(education_record)  # No many=True since it's a single instance
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Member_Education.DoesNotExist:
             return Response({"message": "Member education not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -1908,7 +1908,7 @@ class UpdateMemberEducation(APIView):
     def post(self, request, education_id):
         try:
             education = Member_Education.objects.get(id=education_id)
-            serializer = MemberEducationSerializer(instance=education, data=request.data)
+            serializer = MemberEducationCreateSerializer(instance=education, data=request.data)
             if serializer.is_valid():
                 serializer.save()
                 return Response({"message": "Member education updated successfully"}, status=status.HTTP_200_OK)
@@ -1932,7 +1932,7 @@ class CreateMemberExperience(APIView):
     permission_classes = [IsAuthenticated]  # Uncomment if you want authentication
 
     def post(self, request):
-        serializer = MemberExperienceSerializer(data=request.data)
+        serializer = MemberExperienceCreateSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             member_experience = serializer
@@ -1980,7 +1980,7 @@ class UpdateMemberExperience(APIView):
     def get(self, request, experience_id):
         try:
             experience_record = Member_Experience.objects.get(id=experience_id)
-            serializer = MemberExperienceSerializer(experience_record)  # Remove many=True
+            serializer = MemberExperienceRetrieveSerializer(experience_record)  # Remove many=True
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Member_Experience.DoesNotExist:
             return Response({"message": "Member experience not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -1988,7 +1988,7 @@ class UpdateMemberExperience(APIView):
     def post(self, request, experience_id):
         try:
             experience = Member_Experience.objects.get(id=experience_id)
-            serializer = MemberExperienceSerializer(instance=experience, data=request.data)
+            serializer = MemberExperienceCreateSerializer(instance=experience, data=request.data)
             if serializer.is_valid():
                 serializer.save()
                 return Response({"message": "Member experience updated successfully"}, status=status.HTTP_200_OK)

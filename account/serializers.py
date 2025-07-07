@@ -35,12 +35,36 @@ class GroupSerializer(serializers.ModelSerializer):
         model = Group
         fields = ['id', 'name']
 
-class MemberEducationSerializer(serializers.ModelSerializer):
+class UserDetailSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'first_name', 'last_name']
+
+class MemberListSerializer(serializers.ModelSerializer):
+    salutation = serializers.StringRelatedField()
+    batch = serializers.StringRelatedField()
+    course = serializers.StringRelatedField()
+    user = UserDetailSerializer(read_only=True)
+
+    class Meta:
+        model = Member
+        fields = ['id', 'salutation', 'batch', 'course', 'user']
+    
+class MemberEducationSerializer(serializers.ModelSerializer): 
+    member = MemberListSerializer(read_only=True)
+    institute = serializers.CharField(source='institute.title', read_only=True)
+    location = serializers.CharField(source='location.location', read_only=True)
+    
     class Meta:
         model = Member_Education
         fields = ['id', 'member', 'institute', 'degree', 'start_year', 'end_year', 'is_currently_pursuing', 'location']
 
 class MemberExperienceSerializer(serializers.ModelSerializer):
+    member = MemberListSerializer(read_only=True)
+    location = serializers.CharField(source='location.location', read_only=True)
+    industry = serializers.CharField(source='industry.title', read_only=True)
+    role = serializers.CharField(source='role.role', read_only=True)
     class Meta:
         model = Member_Experience
         fields = ['id', 'member', 'industry', 'role', 'start_date', 'end_date', 'is_currently_working', 'location']

@@ -1,7 +1,38 @@
 from rest_framework import serializers
 from .models import *
+from account.models import Industry, Role, Skill
+from django.contrib.auth.models import User
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'first_name', 'last_name']
+
+# Industry Serializer
+class IndustrySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Industry
+        fields = ['id', 'title']
+
+# Role Serializer
+class RoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Role
+        fields = ['id', 'role']
+
+# Skill Serializer
+class SkillSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Skill
+        fields = ['id', 'skill']
+
+# JobPost Serializer with nested serializers
 class JobPostSerializer(serializers.ModelSerializer):
+    posted_by = UserSerializer(read_only=True)
+    skills = SkillSerializer(many=True, read_only=True)
+    industry = IndustrySerializer(read_only=True)
+    role = RoleSerializer(read_only=True)
+    
     class Meta:
         model = JobPost
         fields = [

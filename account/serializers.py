@@ -103,7 +103,7 @@ class MemberExperienceCreateSerializer(serializers.ModelSerializer):
 class LocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Location
-        fields = ['location']  # Adjust this to match your model fields
+        fields = ['id','location']  # Adjust this to match your model fields
 
 
 class AlumniSerializer(serializers.ModelSerializer):

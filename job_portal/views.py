@@ -478,6 +478,7 @@ class UpdateBusinessDirectory(APIView):
                 "location": business.location,
                 "contact_email": business.contact_email,
                 "contact_number": business.contact_number,
+                "country_id": business.country_code.id,
                 "country_code": business.country_code.country_name,
                 "are_you_part_of_management": business.are_you_part_of_management,
                 "logo": request.build_absolute_uri(business.logo.url) if business.logo else None,

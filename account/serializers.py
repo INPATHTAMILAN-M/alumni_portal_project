@@ -50,21 +50,40 @@ class MemberListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Member
         fields = ['id', 'salutation', 'batch', 'course', 'user']
-    
+
+class InstitutionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Institution
+        fields = ['id','title','description']
+        
+class LocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Location
+        fields = ['id', 'location']    
+           
 class MemberEducationSerializer(serializers.ModelSerializer): 
     member = MemberListSerializer(read_only=True)
-    institute = serializers.CharField(source='institute.title', read_only=True)
-    location = serializers.CharField(source='location.location', read_only=True)
+    institute = InstitutionSerializer(read_only=True)
+    location = LocationSerializer(read_only=True)
     
     class Meta:
         model = Member_Education
         fields = ['id', 'member', 'institute', 'degree', 'start_year', 'end_year', 'is_currently_pursuing', 'location']
 
+class IndustrySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Industry
+        fields = ['id', 'title']  # Adjust this to match your model fields
+
+class RoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Role
+        fields = ['id', 'role']  # Adjust this to match your model fields
 class MemberExperienceSerializer(serializers.ModelSerializer):
     member = MemberListSerializer(read_only=True)
-    location = serializers.CharField(source='location.location', read_only=True)
-    industry = serializers.CharField(source='industry.title', read_only=True)
-    role = serializers.CharField(source='role.role', read_only=True)
+    location = LocationSerializer(read_only=True)
+    industry = IndustrySerializer(read_only=True)
+    role = RoleSerializer(read_only=True)
     class Meta:
         model = Member_Experience
         fields = ['id', 'member', 'industry', 'role', 'start_date', 'end_date', 'is_currently_working', 'location']

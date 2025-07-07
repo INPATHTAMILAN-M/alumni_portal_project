@@ -353,6 +353,7 @@ class UpdateSalutation(APIView):
         try:
             salutation = Salutation.objects.get(id=salutation_id)
             data = {
+                "salutation_id": salutation.id,
                 "salutation": salutation.salutation,
                 "description": salutation.description,
             }
@@ -409,6 +410,7 @@ class UpdateBatch(APIView):
         try:
             batch = Batch.objects.get(id=batch_id)
             data = {
+                "batch_id": batch.id,
                 "title": batch.title,
                 "start_year": batch.start_year,
                 "end_year": batch.end_year
@@ -467,6 +469,7 @@ class UpdateDepartment(APIView):
         try:
             department = Department.objects.get(id=department_id)
             data = {
+                "department_id": department.id,
                 "short_name": department.short_name,
                 "full_name": department.full_name,
                 "is_active": department.is_active
@@ -609,6 +612,7 @@ class UpdateInstitution(APIView):
         try:
             institution = Institution.objects.get(id=institution_id)
             data = {
+                "id": institution.id,
                 "title": institution.title,
                 "description": institution.description
             }
@@ -667,7 +671,7 @@ class UpdateSocialMedia(APIView):
     def get(self, request, social_media_id):
         try:
             social_media = Social_Media.objects.get(id=social_media_id)
-            data = {
+            data = {"id": social_media.id,
                 "title": social_media.title,
                 "icon": request.build_absolute_uri(social_media.icon.url) if social_media.icon else None,
                 "url": social_media.url,
@@ -730,7 +734,7 @@ class UpdateRole(APIView):
     def get(self, request, role_id):
         try:
             role = Role.objects.get(id=role_id)
-            data = {
+            data = {"id": role.id,
                 "role": role.role,
                 "description": role.description
             }
@@ -778,6 +782,7 @@ class UpdateIndustry(APIView):
         try:
             industry = Industry.objects.get(id=industry_id)
             data = {
+                "id": industry.id,
                 "title": industry.title,
                 "description": industry.description,
                 "website": industry.website
@@ -823,6 +828,7 @@ class UpdateLocation(APIView):
         try:
             location = Location.objects.get(id=location_id)
             data = {
+                "id": location.id,
                 "location": location.location
             }
             return Response(data, status=status.HTTP_200_OK)
@@ -868,6 +874,7 @@ class UpdateCountry(APIView):
         try:
             country = Country.objects.get(id=country_id)
             data = {
+                "id": country.id,
                 "country_name": country.country_name,
                 "country_code": country.country_code
             }
@@ -1628,6 +1635,7 @@ class UpdateSkill(APIView):
         try:
             skill = Skill.objects.get(id=skill_id)
             data = {
+                "skill_id": skill.id,
                 "skill": skill.skill,
                 "description": skill.description
             }
@@ -1710,6 +1718,22 @@ class MemberData(APIView):
             'mobile_no': member.mobile_no,
             'batch': member.batch.id,
             'course': member.course.id,
+            'batch_detail': {
+                'id': member.batch.id,
+                'title': member.batch.title,
+                'start_year': member.batch.start_year,
+                'end_year': member.batch.end_year,
+            } if member.batch else None,
+            'course_detail': {
+                'id': member.course.id,
+                'title': member.course.title,
+                'graduate': member.course.graduate,
+                'department': {
+                    'id': member.course.department.id if member.course.department else None,
+                    'short_name': member.course.department.short_name if member.course.department else None,
+                    'full_name': member.course.department.full_name if member.course.department else None,
+                } if member.course.department else None,
+            } if member.course else None,
             'about_me': member.about_me,
             'is_approve': member.is_approve,
             'register_no': member.register_no,

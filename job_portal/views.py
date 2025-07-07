@@ -474,6 +474,7 @@ class UpdateBusinessDirectory(APIView):
                 "business_name": business.business_name,
                 "description": business.description,
                 "website": business.website,
+                "industry_type_id": business.industry_type.id,
                 "industry_type": business.industry_type.type_name,
                 "location": business.location,
                 "contact_email": business.contact_email,
@@ -483,6 +484,7 @@ class UpdateBusinessDirectory(APIView):
                 "are_you_part_of_management": business.are_you_part_of_management,
                 "logo": request.build_absolute_uri(business.logo.url) if business.logo else None,
                 "listed_on": business.listed_on,
+                "listed_by_id": business.listed_by.id if business.listed_by else None,
                 "listed_by": f"{business.listed_by.first_name} {business.listed_by.last_name}" if hasattr(business.listed_by, 'first_name') and hasattr(business.listed_by, 'last_name') else business.listed_by.username,
             }
             return Response(data, status=status.HTTP_200_OK)

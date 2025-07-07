@@ -510,11 +510,11 @@ class UpdateBusinessDirectory(APIView):
         business_directory.business_name = request.data.get('business_name', business_directory.business_name)
         business_directory.description = request.data.get('description', business_directory.description)
         business_directory.website = request.data.get('website', business_directory.website)
-        business_directory.industry_type_id = request.data.get('industry_type', business_directory.industry_type_id)
+        business_directory.industry_type = request.data.get('industry_type', business_directory.industry_type)
         business_directory.location = request.data.get('location', business_directory.location)
         business_directory.contact_email = request.data.get('contact_email', business_directory.contact_email)
         business_directory.contact_number = request.data.get('contact_number', business_directory.contact_number)
-        business_directory.country_code_id = request.data.get('country_code', business_directory.country_code_id)
+        business_directory.country_code = request.data.get('country_code', business_directory.country_code)
         business_directory.are_you_part_of_management = request.data.get('are_you_part_of_management', business_directory.are_you_part_of_management)
 
         # Handle logo upload

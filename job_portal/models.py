@@ -23,6 +23,7 @@ class JobPost(models.Model):
     dead_line = models.DateField()
     job_description = models.TextField()
     file = models.FileField(upload_to='job_files/', blank=True, null=True)
+    picture = models.ImageField(upload_to='job_pictures/', blank=True, null=True)
     post_type = models.CharField(max_length=225, choices=POST_TYPE_CHOICES)
     posted_on = models.DateField(auto_now_add=True)
     is_active = models.BooleanField(default=True)

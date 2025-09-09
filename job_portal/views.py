@@ -14,6 +14,8 @@ from django.db.models import Count
 from account.permissions import *
 from rest_framework.pagination import PageNumberPagination
 from media_portal.models import PostCategory, Post
+
+
 class CreateJobPost(APIView):
     permission_classes = [IsAuthenticated]
     def post(self, request):

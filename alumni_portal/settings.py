@@ -179,7 +179,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-FRONTEND_URL = 'https://alumni.decodeschool.com'  # Replace with your frontend domain
+FRONTEND_URL = 'https://kit-alumni.vercel.app/registration'  # Replace with your frontend domain
 TEMPLATE_NAME='verify_email'
 SITE_URL = 'https://alumnib.decodeschool.com'  
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

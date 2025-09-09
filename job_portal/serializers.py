@@ -52,7 +52,8 @@ class JobPostSerializer(serializers.ModelSerializer):
             'job_description',
             'file',
             'post_type',
-            'is_active'
+            'is_active',
+            'picture',
         ]
 
     def to_representation(self, instance):

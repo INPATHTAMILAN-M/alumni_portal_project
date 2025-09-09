@@ -122,7 +122,7 @@ class RetrieveEvent(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        events = Event.objects.all().order_by('-posted_on')
+        events = Event.objects.all().order_by('-id')
         paginator = PageNumberPagination()
         paginator.page_size = 12  # Set the number of items per page
         paginated_events = paginator.paginate_queryset(events, request)

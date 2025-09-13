@@ -34,6 +34,7 @@ urlpatterns = [
     # single or multiple created by manager
     path('single_import_users/', SingleRegisterUser.as_view(), name='single_import_users'),
     path('bulk_import_users/', BulkRegisterUsers.as_view(), name='bulk_import_users'),
+    path('import_users/', BulkRegisterUsers.as_view(), name='export_users'),
 
     # Salutation
     path('create_salutation/',CreateSalutation.as_view(),name='create_salutation'),

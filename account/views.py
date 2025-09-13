@@ -2502,3 +2502,121 @@ class SendEmailMessage(APIView):
 
         return Response({'message': 'Email sent successfully'}, status=status.HTTP_200_OK)
         
+
+import random, string
+from django.core.mail import send_mail
+from django.contrib.auth.models import Group
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+
+from .models import Member, Salutation, Department, Batch, Course, User
+from django.conf import settings
+
+FRONTEND_URL = getattr(settings, "FRONTEND_URL", "http://localhost:3000")
+
+
+from django.db import transaction
+
+class BulkRegisterUsers(APIView):
+    def post(self, request):
+        group_name = request.data.get("group_name")
+        file = request.FILES.get("file")
+
+        if not group_name:
+            return Response({"error": "Member Type is required"}, status=400)
+        if not file or not file.name.endswith((".xls", ".xlsx")):
+            return Response({"error": "Valid Excel file required"}, status=400)
+
+        try:
+            df = pd.read_excel(file)
+        except Exception as e:
+            return Response({"error": str(e)}, status=400)
+
+        created, errors = [], []
+        seen = set()
+
+        try:
+            with transaction.atomic():  # 🔥 all-or-nothing block
+                for idx, row in df.iterrows():
+                    email = row.get("email")
+                    if not email:
+                        raise ValueError(f"Row {idx+1}: Email required")
+                    if email in seen or Member.objects.filter(email=email).exists():
+                        raise ValueError(f"Row {idx+1}: Duplicate email {email}")
+                    seen.add(email)
+
+                    salutation = Salutation.objects.get(salutation=row.get("salutation"))
+                    gender = row.get("gender")
+                    if gender not in dict(Member.GENDER_CHOICES):
+                        raise ValueError(f"Row {idx+1}: Invalid gender")
+
+                    if group_name == "Faculty":
+                        user, password = self._create_faculty_user(email, row.get("name", ""))
+                        self._create_faculty_member(user, salutation, gender, row)
+                        self._send_faculty_email(user, password, salutation.salutation)
+                        created.append({"email": email, "role": "Faculty"})
+                    else:
+                        self._create_alumni_member(salutation, gender, row)
+                        self._send_alumni_email(salutation.salutation, email)
+                        created.append({"email": email, "role": "Alumni"})
+        except Exception as e:
+            return Response({"error": str(e)}, status=400)
+
+        return Response({"created": created}, status=201)
+
+    # ----------------- Helpers -----------------
+
+    def _create_faculty_user(self, email, name):
+        password = "".join(random.choices(string.ascii_letters + string.digits, k=8))
+        user = User.objects.create_user(username=email, email=email, password=password, first_name=name)
+        group, _ = Group.objects.get_or_create(name="Faculty")
+        user.groups.add(group)
+        return user, password
+
+    def _create_faculty_member(self, user, salutation, gender, row):
+        dept = Department.objects.filter(short_name=row.get("department")).first()
+        Member.objects.create(
+            user=user,
+            salutation=salutation,
+            gender=gender,
+            dob=row.get("dob") if pd.notna(row.get("dob")) else None,
+            email=row.get("email"),
+            department=dept,
+            mobile_no=row.get("mobile_no"),
+            is_approve=True,
+        )
+
+    def _create_alumni_member(self, salutation, gender, row):
+        if not row.get("batch") or not row.get("course") or not row.get("register_no"):
+            raise ValueError("Batch, Course, and Register No are required")
+
+        if Member.objects.filter(register_no=row.get("register_no")).exists():
+            raise ValueError("Duplicate register number")
+
+        batch = Batch.objects.filter(title=row.get("batch")).first()
+        course = Course.objects.filter(title=row.get("course")).first()
+        if not batch or not course:
+            raise ValueError("Invalid Batch or Course")
+
+        Member.objects.create(
+            salutation=salutation,
+            gender=gender,
+            dob=row.get("dob") if pd.notna(row.get("dob")) else None,
+            email=row.get("email"),
+            batch=batch,
+            course=course,
+            register_no=row.get("register_no"),
+            mobile_no=row.get("mobile_no"),
+            is_approve=True,
+        )
+
+    def _send_faculty_email(self, user, password, salutation):
+        url = FRONTEND_URL.rstrip("/") + "/login"
+        msg = f"Dear {salutation} {user.email},\n\nYour Faculty account:\nUser: {user.username}\nPass: {password}\n\nLogin: {url}"
+        send_mail("Faculty Account", msg, "no-reply@example.com", [user.email])
+
+    def _send_alumni_email(self, salutation, email):
+        url = FRONTEND_URL.rstrip("/") + "/registration"
+        msg = f"Dear {salutation} {email},\n\nYour Alumni account has been created.\nRegister here: {url}"
+        send_mail("Alumni Account", msg, "no-reply@example.com", [email])

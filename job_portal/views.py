@@ -513,16 +513,16 @@ class UpdateBusinessDirectory(APIView):
             business_directory = BusinessDirectory.objects.get(id=directory_id)
         except BusinessDirectory.DoesNotExist:
             return Response({"message": "Business directory not found"}, status=status.HTTP_404_NOT_FOUND)
-        if industry_type := request.data.get('industry_type'):
+        if request.data.get('industry_type'):
             try:
-                industry_type = industry_type
+                industry_type = Industry_Type.objects.get(id=request.data['industry_type'])
                 
             except Industry_Type.DoesNotExist:
                 return Response({"message": "Industry type not found"}, status=status.HTTP_404_NOT_FOUND)
         
-        if country_code := request.data.get('country_code'):
+        if request.data.get('country_code'):
             try:
-                country_code = country_code
+                country_code = Country.objects.get(id=request.data['country_code'])
             except Country.DoesNotExist:
                 return Response({"message": "Country code not found"}, status=status.HTTP_404_NOT_FOUND)
         

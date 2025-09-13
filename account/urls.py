@@ -35,6 +35,7 @@ urlpatterns = [
     path('single_import_users/', SingleRegisterUser.as_view(), name='single_import_users'),
     path('bulk_import_users/', BulkRegisterUsers.as_view(), name='bulk_import_users'),
     path('import_users/', BulkRegisterUsers.as_view(), name='export_users'),
+    path('upload_mater_data/', MasterDataUploadView.as_view(), name='upload_mater_data'),
 
     # Salutation
     path('create_salutation/',CreateSalutation.as_view(),name='create_salutation'),

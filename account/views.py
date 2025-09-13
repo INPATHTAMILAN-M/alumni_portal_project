@@ -2511,6 +2511,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from .models import Member, Salutation, Department, Batch, Course, User
+from help_desk.models import TicketCategory
 from django.conf import settings
 
 FRONTEND_URL = getattr(settings, "FRONTEND_URL", "http://localhost:3000")
@@ -2620,3 +2621,106 @@ class BulkRegisterUsers(APIView):
         url = FRONTEND_URL.rstrip("/") + "/registration"
         msg = f"Dear {salutation} {email},\n\nYour Alumni account has been created.\nRegister here: {url}"
         send_mail("Alumni Account", msg, "no-reply@example.com", [email])
+
+
+class MasterDataUploadView(APIView):
+    """
+    API to upload all master data (except Alumni) from Excel.
+    """
+
+    def post(self, request):
+        if 'file' not in request.FILES:
+            return Response({"error": "No file uploaded"}, status=status.HTTP_400_BAD_REQUEST)
+
+        excel_file = request.FILES['file']
+
+        try:
+            xls = pd.ExcelFile(excel_file)
+        except Exception as e:
+            return Response({"error": f"Invalid Excel file - {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        created_data = {}
+        errors = {}
+
+        try:
+            with transaction.atomic():  # Rollback if anything fails
+
+                # 1. Institutions
+                if "Institution" in xls.sheet_names:
+                    df = pd.read_excel(xls, "Institution")
+                    for _, row in df.iterrows():
+                        Institution.objects.get_or_create(title=row["name"])
+                    created_data["Institution"] = df.shape[0]
+
+                # 2. Salutation
+                if "Salutation" in xls.sheet_names:
+                    df = pd.read_excel(xls, "Salutation")
+                    for _, row in df.iterrows():
+                        Salutation.objects.get_or_create(salutation=row["name"])
+                    created_data["Salutation"] = df.shape[0]
+
+                if "Batches" in xls.sheet_names:
+                    df = pd.read_excel(xls, "Batches")
+
+                    for _, row in df.iterrows():
+                        if pd.isna(row["name"]):
+                            continue  # Skip empty rows
+
+                        # Split "2007-2011" → ["2007", "2011"]
+                        years = str(row["name"]).split("-")
+                        if len(years) != 2:
+                            continue  # Skip invalid format
+
+                        start_year, end_year = int(years[0]), int(years[1])
+
+                        Batch.objects.get_or_create(
+                            title=row["name"],  # Keep full string as title
+                            start_year=start_year,
+                            end_year=end_year
+                        )
+
+                    created_data["Batches"] = df.shape[0]
+
+                # 4. Courses
+                if "Courses" in xls.sheet_names:
+                    df = pd.read_excel(xls, "Courses")
+                    for _, row in df.iterrows():
+                        Course.objects.get_or_create(title=row["name"])
+                    created_data["Courses"] = df.shape[0]
+
+                # 5. Department
+                if "Department" in xls.sheet_names:
+                    df = pd.read_excel(xls, "Department")
+                    for _, row in df.iterrows():
+                        Department.objects.get_or_create(short_name=row["name"])
+                    created_data["Department"] = df.shape[0]
+
+                # 6. Ticket Category
+                if "Ticket Category" in xls.sheet_names:
+                    df = pd.read_excel(xls, "Ticket Category")
+                    for _, row in df.iterrows():
+                        TicketCategory.objects.get_or_create(category=row["name"])
+                    created_data["Ticket Category"] = df.shape[0]
+
+                # 7. Post Category
+                if "Post Category" in xls.sheet_names:
+                    df = pd.read_excel(xls, "Post Category")
+                    for _, row in df.iterrows():
+                        PostCategory.objects.get_or_create(name=row["name"])
+                    created_data["Post Category"] = df.shape[0]
+
+                # 8. Event Category
+                if "Event Category" in xls.sheet_names:
+                    df = pd.read_excel(xls, "Event Category")
+                    for _, row in df.iterrows():
+                        EventCategory.objects.get_or_create(title=row["name"])
+                    created_data["Event Category"] = df.shape[0]
+
+        except Exception as e:
+            return Response({"error": f"Upload failed - {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            "message": "Master data uploaded successfully",
+            "created_data": created_data,
+            "errors": errors
+        }, status=status.HTTP_201_CREATED)

@@ -429,7 +429,11 @@ class AlbumView(APIView):
 
     def put(self, request, album_id):
         try:
-            album = Album.objects.get(id=album_id, created_by=request.user)
+            if request.user.groups.filter(name__in=['Alumni_Manager', 'Administrator']).exists():
+                album = Album.objects.get(id=album_id)
+            else:
+                album = Album.objects.get(id=album_id, created_by=request.user)
+
         except Album.DoesNotExist:
             return Response(
                 {"message": "Album not found or you do not have permission to add photos."},

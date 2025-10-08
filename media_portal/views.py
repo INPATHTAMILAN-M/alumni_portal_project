@@ -51,6 +51,11 @@ class PostViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        # For the viewset's list action (router `posts/`), return published posts in descending id order
+        # For other actions (retrieve, create, etc.), keep user-scoped queryset
+        if self.action == 'list':
+            # Public list of posts should show latest first
+            return Post.objects.filter(published=True).order_by('-id')
         return Post.objects.filter(posted_by=self.request.user).order_by('-id')
 
     def perform_create(self, serializer):
@@ -352,9 +357,10 @@ class PostFilterView(APIView):
         if published is not None:
             filters &= Q(published=published)
 
+        # Order filtered posts by id descending to ensure newest posts first
         queryset = Post.objects.prefetch_related(
             'post_category'
-        ).filter(filters).order_by('-posted_on')
+        ).filter(filters).order_by('-id')
 
         paginator = PageNumberPagination()
         paginator.page_size = 10  # Set the number of items per page

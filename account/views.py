@@ -1388,6 +1388,7 @@ class BulkRegisterUsers(APIView):
                     # Check if register_no is provided and if it already exists in the database
                     if register_no:
                         if Member.objects.filter(register_no=register_no).exists():
+                            print(Member.objects.filter(register_no=register_no))
                             errors.append({'email': email, 'error': f'Duplicate register number: {register_no}', 'row': index + 1})
                             continue
                     else:
@@ -1398,12 +1399,12 @@ class BulkRegisterUsers(APIView):
                         salutation=salutation_instance,
                         gender=gender,
                         dob=dob,
-                        blood_group=blood_group,
+                        blood_group=blood_group if blood_group else None,
                         mobile_no=mobile_no,
                         email=email,
                         batch=batch,
                         course=course,
-                        register_no=register_no,
+                        register_no=register_no if register_no else None,
                         profile_picture=profile_picture,
                         is_approve=True,
                     )
@@ -2589,17 +2590,29 @@ class BulkRegisterUsers(APIView):
         )
 
     def _create_alumni_member(self, salutation, gender, row):
-        if not row.get("batch") or not row.get("course") or not row.get("register_no"):
-            raise ValueError("Batch, Course, and Register No are required")
+        if not row.get("batch") or not row.get("course") or not row.get("register_no") or not row.get("department"):
+            raise ValueError("Batch, Course, Register No, and Department are required")
 
         if Member.objects.filter(register_no=row.get("register_no")).exists():
-            raise ValueError("Duplicate register number")
+            print(Member.objects.filter(register_no=row.get("register_no")).delete())
+            # raise ValueError(f"Duplicate register number: {row.get('register_no')}")
 
+        # Get batch
         batch = Batch.objects.filter(title=row.get("batch")).first()
-        course = Course.objects.filter(title=row.get("course")).first()
-        if not batch or not course:
-            raise ValueError("Invalid Batch or Course")
+        if not batch:
+            raise ValueError(f"Invalid Batch: {row.get('batch')}")
 
+        # Get department first
+        dept = Department.objects.filter(short_name=row.get("department")).first()
+        if not dept:
+            raise ValueError(f"Invalid Department: {row.get('department')}")
+
+        # Get course with both course name and department
+        course = Course.objects.filter(title=row.get("course"), department=dept).first()
+        if not course:
+            raise ValueError(f"Invalid Course '{row.get('course')}' for Department '{dept.short_name}'")
+
+        # Create member
         Member.objects.create(
             salutation=salutation,
             gender=gender,
@@ -2618,7 +2631,7 @@ class BulkRegisterUsers(APIView):
         send_mail("Faculty Account", msg, "no-reply@example.com", [user.email])
 
     def _send_alumni_email(self, salutation, email):
-        url = FRONTEND_URL.rstrip("/") + "/registration"
+        url = FRONTEND_URL.rstrip("/") 
         msg = f"Dear {salutation} {email},\n\nYour Alumni account has been created.\nRegister here: {url}"
         send_mail("Alumni Account", msg, "no-reply@example.com", [email])
 
@@ -2644,23 +2657,29 @@ class MasterDataUploadView(APIView):
 
         try:
             with transaction.atomic():  # Rollback if anything fails
-
+                print(xls.sheet_names)
                 # 1. Institutions
                 if "Institution" in xls.sheet_names:
                     df = pd.read_excel(xls, "Institution")
+                    df.columns = df.columns.str.strip().str.lower()
+                    print("Batches columns:", df.columns.tolist())
                     for _, row in df.iterrows():
-                        Institution.objects.get_or_create(title=row["name"])
+                        Institution.objects.get_or_create(title=row['institution name'])
                     created_data["Institution"] = df.shape[0]
 
                 # 2. Salutation
                 if "Salutation" in xls.sheet_names:
                     df = pd.read_excel(xls, "Salutation")
+                    df.columns = df.columns.str.strip().str.lower()
+                    print("Batches columns:", df.columns.tolist())
                     for _, row in df.iterrows():
                         Salutation.objects.get_or_create(salutation=row["name"])
                     created_data["Salutation"] = df.shape[0]
 
                 if "Batches" in xls.sheet_names:
                     df = pd.read_excel(xls, "Batches")
+                    df.columns = df.columns.str.strip().str.lower()
+                    print("Batches columns:", df.columns.tolist())
 
                     for _, row in df.iterrows():
                         if pd.isna(row["name"]):
@@ -2681,16 +2700,38 @@ class MasterDataUploadView(APIView):
 
                     created_data["Batches"] = df.shape[0]
 
-                # 4. Courses
                 if "Courses" in xls.sheet_names:
                     df = pd.read_excel(xls, "Courses")
+                    df.columns = df.columns.str.strip().str.lower()  # normalize column names
+
+                    created_courses = 0
                     for _, row in df.iterrows():
-                        Course.objects.get_or_create(title=row["name"])
-                    created_data["Courses"] = df.shape[0]
+                        course_name = row.get("course")
+                        dept_name = row.get("department")
+
+                        if not course_name or not dept_name:
+                            continue  # skip empty rows
+
+                        # Get or create the department first
+                        dept_obj, _ = Department.objects.get_or_create(short_name=dept_name)
+
+                        # Get or create the course linked to the department
+                        course_obj, created = Course.objects.get_or_create(
+                            title=course_name,
+                            department=dept_obj,
+                            defaults={"graduate": "UG", "is_active": True}  # adjust defaults if needed
+                        )
+
+                        if created:
+                            created_courses += 1
+
+                    created_data["Courses"] = created_courses
 
                 # 5. Department
                 if "Department" in xls.sheet_names:
                     df = pd.read_excel(xls, "Department")
+                    df.columns = df.columns.str.strip().str.lower()
+                    print("Batches columns:", df.columns.tolist())
                     for _, row in df.iterrows():
                         Department.objects.get_or_create(short_name=row["name"])
                     created_data["Department"] = df.shape[0]
@@ -2698,6 +2739,8 @@ class MasterDataUploadView(APIView):
                 # 6. Ticket Category
                 if "Ticket Category" in xls.sheet_names:
                     df = pd.read_excel(xls, "Ticket Category")
+                    df.columns = df.columns.str.strip().str.lower()
+                    print("Batches columns:", df.columns.tolist())
                     for _, row in df.iterrows():
                         TicketCategory.objects.get_or_create(category=row["name"])
                     created_data["Ticket Category"] = df.shape[0]
@@ -2705,6 +2748,7 @@ class MasterDataUploadView(APIView):
                 # 7. Post Category
                 if "Post Category" in xls.sheet_names:
                     df = pd.read_excel(xls, "Post Category")
+                    df.columns = df.columns.str.strip().str.lower()
                     for _, row in df.iterrows():
                         PostCategory.objects.get_or_create(name=row["name"])
                     created_data["Post Category"] = df.shape[0]
@@ -2712,6 +2756,7 @@ class MasterDataUploadView(APIView):
                 # 8. Event Category
                 if "Event Category" in xls.sheet_names:
                     df = pd.read_excel(xls, "Event Category")
+                    df.columns = df.columns.str.strip().str.lower()
                     for _, row in df.iterrows():
                         EventCategory.objects.get_or_create(title=row["name"])
                     created_data["Event Category"] = df.shape[0]

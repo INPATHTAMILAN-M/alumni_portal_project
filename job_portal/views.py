@@ -406,35 +406,31 @@ class CreateBusinessDirectory(APIView):
 class RetrieveBusinessDirectory(APIView):
     permission_classes = [IsAuthenticated]
 
-    
     def get(self, request):
         try:
+            # Fetch and order results (latest first)
             business_directories = BusinessDirectory.objects.all().order_by('-id')
 
             # Apply pagination
             paginator = PageNumberPagination()
-            paginator.page_size = 10  # Set the number of items per page
+            paginator.page_size = 10
             paginated_business_directories = paginator.paginate_queryset(business_directories, request)
 
-            data = []
-            for business in paginated_business_directories:
-                data.append({
+            data = [
+                {
                     "id": business.id,
                     "business_name": business.business_name,
-                    # "description": business.description,
                     "website": business.website,
-                    "industry_type": business.industry_type.type_name,  # or business.industry_type.name if you want the name
+                    "industry_type": business.industry_type.type_name,
                     "location": business.location,
-                    # "contact_email": business.contact_email,
-                    # "contact_number": business.contact_number,
-                    # "country_code": business.country_code.id,  # or business.country_code.name if you want the name
-                    # "are_you_part_of_management": business.are_you_part_of_management,
                     "logo": request.build_absolute_uri(business.logo.url) if business.logo else None,
                     "listed_on": business.listed_on,
-                    # "listed_by": business.listed_by.id,  # or business.listed_by.username if you want the username
-                })
+                }
+                for business in paginated_business_directories
+            ]
 
             return paginator.get_paginated_response(data)
+
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

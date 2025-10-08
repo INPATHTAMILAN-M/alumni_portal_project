@@ -46,24 +46,22 @@ class PostCategoryViewSet(viewsets.ModelViewSet):
     
 
 class PostViewSet(viewsets.ModelViewSet):
-    queryset = Post.objects.all().order_by('-id')
     serializer_class = PostSerializer
-
     parser_classes = (MultiPartParser, FormParser)
-
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Post.objects.filter(posted_by=self.request.user)
+        return Post.objects.filter(posted_by=self.request.user).order_by('-id')
 
     def perform_create(self, serializer):
-        serializer.save(posted_by=self.request.user)
+        is_admin_or_manager = self.request.user.groups.filter(
+            name__in=['Administrator', 'Alumni_Manager']
+        ).exists()
 
-        if self.request.user.groups.filter(name='Administrator').exists() or self.request.user.groups.filter(name='Alumni_Manager').exists():
-
-            serializer.save(posted_by=self.request.user, published=True)
-        else:
-            serializer.save(posted_by=self.request.user, published=False)
+        serializer.save(
+            posted_by=self.request.user,
+            published=is_admin_or_manager
+        )
 
 # create post
         

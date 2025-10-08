@@ -65,9 +65,26 @@ class CreateEvent(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
-        # Copy incoming request data
-        event_data = request.data.copy()
-        event_data['posted_by'] = request.user.id
+        # Create a new dictionary instead of copying request.data to avoid pickle issues with file objects
+        event_data = {
+            'title': request.data.get('title'),
+            'category': request.data.get('category'),
+            'start_date': request.data.get('start_date'),
+            'start_time': request.data.get('start_time'),
+            'venue': request.data.get('venue'),
+            'address': request.data.get('address'),
+            'link': request.data.get('link'),
+            'is_public': request.data.get('is_public'),
+            'need_registration': request.data.get('need_registration'),
+            'registration_close_date': request.data.get('registration_close_date'),
+            'description': request.data.get('description'),
+            'instructions': request.data.get('instructions'),
+            'posted_by': request.user.id,
+        }
+        
+        # Handle file upload separately to avoid pickle issues
+        if 'event_wallpaper' in request.FILES:
+            event_data['event_wallpaper'] = request.FILES['event_wallpaper']
 
         # Serialize the event data
         event_serializer = EventSerializer(data=event_data)

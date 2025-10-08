@@ -409,7 +409,7 @@ class RetrieveBusinessDirectory(APIView):
     
     def get(self, request):
         try:
-            business_directories = BusinessDirectory.objects.all()
+            business_directories = BusinessDirectory.objects.all().order_by('-id')
 
             # Apply pagination
             paginator = PageNumberPagination()

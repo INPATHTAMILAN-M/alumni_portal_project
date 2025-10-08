@@ -46,7 +46,7 @@ class PostCategoryViewSet(viewsets.ModelViewSet):
     
 
 class PostViewSet(viewsets.ModelViewSet):
-    queryset = Post.objects.all().order_by('-posted_on')
+    queryset = Post.objects.all().order_by('-id')
     serializer_class = PostSerializer
 
     parser_classes = (MultiPartParser, FormParser)

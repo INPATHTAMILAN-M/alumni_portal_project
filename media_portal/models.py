@@ -34,6 +34,9 @@ class Post(models.Model):
     def __str__(self):
         return self.title
 
+    class Meta:
+        ordering = ['-id'] 
+
 class PostFiles(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
     file = models.FileField(upload_to='posts/files/')

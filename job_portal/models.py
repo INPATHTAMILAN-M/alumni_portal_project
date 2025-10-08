@@ -64,6 +64,9 @@ class BusinessDirectory(models.Model):
 
     def __str__(self):
         return self.business_name
+    
+    class Meta:
+        ordering = ['-id'] 
 
 class JobComment(models.Model):
     job = models.ForeignKey(JobPost, on_delete=models.CASCADE, related_name='job_comments')

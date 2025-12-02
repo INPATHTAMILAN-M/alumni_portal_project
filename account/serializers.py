@@ -314,7 +314,7 @@ class MemberMilestoneRetrieveSerializer(serializers.ModelSerializer):
 class ChapterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Chapter
-        fields = ['id', 'name', 'description', 'image', 'chapter_type', 'city', 'state', 'country', 'created_at']
+        fields = ['id', 'name', 'description', 'image', 'chapter_type', 'city', 'state', 'country', 'created_at','location']
 
 
 class ChapterMembershipSerializer(serializers.ModelSerializer):

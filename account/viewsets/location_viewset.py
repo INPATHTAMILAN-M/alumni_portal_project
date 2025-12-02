@@ -13,7 +13,7 @@ class CountryViewSet(viewsets.ModelViewSet):
     """
     queryset = Country.objects.all().order_by('country_name')
     serializer_class = CountrySerializer
-    permission_classes = [IsAuthenticated, IsAlumniManagerOrAdministrator]
+    permission_classes = [IsAuthenticated,]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['country_name', 'currency_active']
     search_fields = ['country_name', 'country_code']
@@ -22,7 +22,7 @@ class CountryViewSet(viewsets.ModelViewSet):
 class StateViewSet(viewsets.ModelViewSet):
     queryset = State.objects.all().order_by('state_name')
     serializer_class = StateSerializer
-    permission_classes = [IsAuthenticated, IsAlumniManagerOrAdministrator]
+    permission_classes = [IsAuthenticated,]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['country']
     search_fields = ['state_name']
@@ -30,7 +30,7 @@ class StateViewSet(viewsets.ModelViewSet):
 class CityViewSet(viewsets.ModelViewSet):
     queryset = City.objects.all().order_by('city_name')
     serializer_class = CitySerializer
-    permission_classes = [IsAuthenticated, IsAlumniManagerOrAdministrator]
+    permission_classes = [IsAuthenticated, ]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['state']
     search_fields = ['city_name']

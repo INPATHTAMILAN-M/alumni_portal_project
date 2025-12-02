@@ -24,6 +24,6 @@ class ChapterMembershipViewSet(viewsets.ModelViewSet):
     serializer_class = ChapterMembershipSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['chapter', 'user']
+    filterset_fields = ['chapter', 'user', 'chapter__location']
     search_fields = ['chapter__name', 'user__email', 'user__first_name', 'user__last_name']
     ordering_fields = ['joined_at']

@@ -255,6 +255,7 @@ class Chapter(models.Model):
     city = models.ForeignKey(City, null=True, blank=True, on_delete=models.SET_NULL)
     state = models.ForeignKey(State, null=True, blank=True, on_delete=models.SET_NULL)
     country = models.ForeignKey(Country, null=True, blank=True, on_delete=models.SET_NULL)
+    location = models.ForeignKey(Location, null=True, blank=True, on_delete=models.SET_NULL)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

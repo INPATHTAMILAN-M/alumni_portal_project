@@ -4,13 +4,13 @@
 echo "Pulling latest changes from Git..."
 git pull || { echo "Git pull failed. Exiting."; exit 1; }
 
+# Reload systemd daemon first
+echo "Reloading systemd daemon..."
+sudo systemctl daemon-reload || { echo "Failed to reload daemon. Exiting."; exit 1; }
+
 # Restart the alumniportal service
 echo "Restarting the alumniportal service..."
 sudo systemctl restart alumniportal || { echo "Failed to restart alumniportal. Exiting."; exit 1; }
-
-# Restart the daemon service
-echo "Restarting the daemon service..."
-sudo systemctl daemon-reload || { echo "Failed to restart daemon. Exiting."; exit 1; }
 
 # Restart the Nginx service
 echo "Restarting Nginx..."

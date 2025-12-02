@@ -245,8 +245,8 @@ class UserActivity(models.Model):
 class Chapter(models.Model):
     CHAPTER_TYPE_CHOICES = [
         ('Regional', 'Regional'),
-        ('Affinity', 'Affinity'),
-        ('International', 'International'),
+        ('Interest-Based', 'Interest-Based'),
+        ('Department', 'Department'),
     ]
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True, null=True)

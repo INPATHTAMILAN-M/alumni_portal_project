@@ -8,9 +8,9 @@ git pull || { echo "Git pull failed. Exiting."; exit 1; }
 echo "Reloading systemd daemon..."
 sudo systemctl daemon-reload || { echo "Failed to reload daemon. Exiting."; exit 1; }
 
-# Restart the alumniportal service
-echo "Restarting the alumniportal service..."
-sudo systemctl restart alumniportal || { echo "Failed to restart alumniportal. Exiting."; exit 1; }
+# Restart the alumni-portal service
+echo "Restarting the alumni-portal service..."
+sudo systemctl restart alumni-portal || { echo "Failed to restart alumni-portal. Exiting."; exit 1; }
 
 # Restart the Nginx service
 echo "Restarting Nginx..."

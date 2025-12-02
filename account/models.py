@@ -117,8 +117,8 @@ class Member(models.Model):
         ('O_NEGATIVE', 'O-'),
     ]
     
-    salutation = models.ForeignKey(Salutation, on_delete=models.CASCADE, null=False)
-    gender = models.CharField(max_length=10, choices=GENDER_CHOICES,null=False)
+    salutation = models.ForeignKey(Salutation, on_delete=models.CASCADE, null=True, blank=True)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES,null=True, blank=True)
     dob = models.DateField(null=True, blank=True)
     blood_group = models.CharField(max_length=11, choices=BLOOD_GROUP_CHOICES,null=True, blank=True)
     profile_picture = models.ImageField(upload_to='profile_pictures/', null=True)

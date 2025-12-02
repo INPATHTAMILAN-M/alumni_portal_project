@@ -1035,7 +1035,7 @@ class CreateOwnMember(APIView):
 
             else:
                 # If no existing member, create a new one
-                salutation = Salutation.objects.get(id=salutation_id)
+                salutation = Salutation.objects.get(id=salutation_id) if salutation_id else None
                 batch = Batch.objects.get(id=batch_id) if batch_id else None
                 course = Course.objects.get(id=course_id) if course_id else None
                 

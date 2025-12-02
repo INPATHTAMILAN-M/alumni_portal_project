@@ -314,7 +314,7 @@ class MemberMilestoneRetrieveSerializer(serializers.ModelSerializer):
 class ChapterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Chapter
-        fields = ['id', 'name', 'description', 'city', 'state', 'country', 'created_at']
+        fields = ['id', 'name', 'description', 'image', 'chapter_type', 'city', 'state', 'country', 'created_at']
 
 
 class ChapterMembershipSerializer(serializers.ModelSerializer):
@@ -331,6 +331,34 @@ class ChapterMembershipSerializer(serializers.ModelSerializer):
         model = ChapterMembership
         fields = ['id', 'chapter', 'user', 'joined_at', 'user_id', 'chapter_id']
         read_only_fields = ['joined_at']
+
+
+class CountrySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Country
+        fields = ['id', 'country_name', 'currency_short', 'currency_full', 'currency_active', 'country_code']
+
+
+class StateSerializer(serializers.ModelSerializer):
+    country = CountrySerializer(read_only=True)
+    country_id = serializers.PrimaryKeyRelatedField(
+        queryset=Country.objects.all(), source='country', write_only=True
+    )
+
+    class Meta:
+        model = State
+        fields = ['id', 'state_name', 'country', 'country_id']
+
+
+class CitySerializer(serializers.ModelSerializer):
+    state = StateSerializer(read_only=True)
+    state_id = serializers.PrimaryKeyRelatedField(
+        queryset=State.objects.all(), source='state', write_only=True
+    )
+
+    class Meta:
+        model = City
+        fields = ['id', 'city_name', 'state', 'state_id']
     
     
     

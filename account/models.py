@@ -92,12 +92,33 @@ class Industry_Type(models.Model):
     def __str__(self):
         return self.type_name
 
+
 class Country(models.Model):
-    country_name = models.CharField(max_length=50, null=False)
-    country_code = models.CharField(max_length=10, blank=True)
+    country_name = models.CharField(max_length=255)
+    currency_short = models.CharField(max_length=15, null=True, blank=True)
+    currency_full = models.CharField(max_length=55, null=True, blank=True)
+    currency_active = models.BooleanField(default=True)
+    country_code = models.CharField(max_length=15, null=True, blank=True)
 
     def __str__(self):
         return self.country_name
+
+
+class State(models.Model):
+    state_name = models.CharField(max_length=255)
+    country = models.ForeignKey(Country, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.state_name
+
+
+class City(models.Model):
+    state = models.ForeignKey(State, null=True, blank=True, on_delete=models.CASCADE)
+    city_name = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.city_name
+
 
 class Member(models.Model):
 
@@ -222,11 +243,18 @@ class UserActivity(models.Model):
 
 
 class Chapter(models.Model):
+    CHAPTER_TYPE_CHOICES = [
+        ('Regional', 'Regional'),
+        ('Affinity', 'Affinity'),
+        ('International', 'International'),
+    ]
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True, null=True)
-    city = models.CharField(max_length=255, blank=True, null=True)
-    state = models.CharField(max_length=255, blank=True, null=True)
-    country = models.CharField(max_length=255, blank=True, null=True)
+    image = models.ImageField(upload_to='chapter_images/', null=True, blank=True)
+    chapter_type = models.CharField(max_length=50, choices=CHAPTER_TYPE_CHOICES, default='Regional')
+    city = models.ForeignKey(City, null=True, blank=True, on_delete=models.SET_NULL)
+    state = models.ForeignKey(State, null=True, blank=True, on_delete=models.SET_NULL)
+    country = models.ForeignKey(Country, null=True, blank=True, on_delete=models.SET_NULL)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

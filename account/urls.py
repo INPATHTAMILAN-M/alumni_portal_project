@@ -2,6 +2,7 @@ from django.urls import path,include
 
 from account.viewsets.member_milestone_viewset import MemberMilestoneViewSet
 from account.viewsets.chapter_viewset import ChapterViewSet, ChapterMembershipViewSet
+from account.viewsets.location_viewset import CountryViewSet, StateViewSet, CityViewSet
 from .views import *
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -10,6 +11,9 @@ router = DefaultRouter()
 router.register(r'milestones', MemberMilestoneViewSet)
 router.register(r'chapters', ChapterViewSet)
 router.register(r'chapter-memberships', ChapterMembershipViewSet)
+router.register(r'countries-list', CountryViewSet)
+router.register(r'states-list', StateViewSet)
+router.register(r'cities-list', CityViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

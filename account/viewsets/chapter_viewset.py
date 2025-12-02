@@ -15,8 +15,8 @@ class ChapterViewSet(viewsets.ModelViewSet):
     serializer_class = ChapterSerializer
     permission_classes = [IsAuthenticated, IsAlumniManagerOrAdministrator]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['city', 'state', 'country']
-    search_fields = ['name', 'description', 'city', 'state', 'country']
+    filterset_fields = ['city', 'state', 'country', 'chapter_type']
+    search_fields = ['name', 'description', 'city', 'state', 'country', 'chapter_type']
     ordering_fields = ['name', 'created_at']
 
 class ChapterMembershipViewSet(viewsets.ModelViewSet):

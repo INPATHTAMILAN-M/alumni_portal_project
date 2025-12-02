@@ -1,12 +1,15 @@
 from django.urls import path,include
 
 from account.viewsets.member_milestone_viewset import MemberMilestoneViewSet
+from account.viewsets.chapter_viewset import ChapterViewSet, ChapterMembershipViewSet
 from .views import *
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 
 router = DefaultRouter()
 router.register(r'milestones', MemberMilestoneViewSet)
+router.register(r'chapters', ChapterViewSet)
+router.register(r'chapter-memberships', ChapterMembershipViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -219,3 +219,27 @@ class UserActivity(models.Model):
 
     def __str__(self):
         return f'{self.user.username} - {self.activity.name} - {self.activity.points}'
+
+
+class Chapter(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    description = models.TextField(blank=True, null=True)
+    city = models.CharField(max_length=255, blank=True, null=True)
+    state = models.CharField(max_length=255, blank=True, null=True)
+    country = models.CharField(max_length=255, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+
+class ChapterMembership(models.Model):
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="members")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="chapters")
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('chapter', 'user')
+
+    def __str__(self):
+        return f"{self.user.email} -> {self.chapter.name}"

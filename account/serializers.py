@@ -310,5 +310,27 @@ class MemberMilestoneRetrieveSerializer(serializers.ModelSerializer):
         model = Member_Milestone
         fields = ['id','member',  'title', 'description', 'year']
     
+
+class ChapterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Chapter
+        fields = ['id', 'name', 'description', 'city', 'state', 'country', 'created_at']
+
+
+class ChapterMembershipSerializer(serializers.ModelSerializer):
+    user = UserDetailSerializer(read_only=True)
+    chapter = ChapterSerializer(read_only=True)
+    user_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), source='user', write_only=True
+    )
+    chapter_id = serializers.PrimaryKeyRelatedField(
+        queryset=Chapter.objects.all(), source='chapter', write_only=True
+    )
+
+    class Meta:
+        model = ChapterMembership
+        fields = ['id', 'chapter', 'user', 'joined_at', 'user_id', 'chapter_id']
+        read_only_fields = ['joined_at']
+    
     
     

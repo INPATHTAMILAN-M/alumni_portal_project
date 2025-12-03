@@ -31,21 +31,39 @@ class ChapterMembershipViewSet(viewsets.ModelViewSet):
     ordering_fields = ['joined_at']
 
     def create(self, request, *args, **kwargs):
-        user_ids = request.data.get('user_ids', [])
+        user_ids = request.data.get('users', [])
         chapter_id = request.data.get('chapter_id')
 
         if not isinstance(user_ids, list):
-            return Response({"error": "user_ids must be a list."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "users must be a list."}, status=status.HTTP_400_BAD_REQUEST)
 
         if not chapter_id:
             return Response({"error": "chapter_id is required."}, status=status.HTTP_400_BAD_REQUEST)
 
+        try:
+            chapter = Chapter.objects.get(id=chapter_id)
+        except Chapter.DoesNotExist:
+            return Response({"error": "Chapter not found."}, status=status.HTTP_404_NOT_FOUND)
+
         memberships = []
+        errors = []
         for user_id in user_ids:
+            # Check if the membership already exists
+            if ChapterMembership.objects.filter(chapter_id=chapter_id, user_id=user_id).exists():
+                errors.append({"user_id": user_id, "error": "User is already a member of this chapter."})
+                continue
+
             data = {'user_id': user_id, 'chapter_id': chapter_id}
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
             self.perform_create(serializer)
             memberships.append(serializer.data)
 
-        return Response(memberships, status=status.HTTP_201_CREATED)
+        # Return the chapter details with all its members
+        chapter_serializer = ChapterSerializer(chapter)
+        members = ChapterMembership.objects.filter(chapter=chapter)
+        member_serializer = self.get_serializer(members, many=True)
+        return Response({
+            "chapter": chapter_serializer.data,
+            "members": member_serializer.data
+        }, status=status.HTTP_201_CREATED)

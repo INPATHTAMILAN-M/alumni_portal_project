@@ -5,6 +5,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from ..models import Chapter, ChapterMembership
 from ..serializers import ChapterSerializer, ChapterMembershipSerializer
+from ..filters.chapter_filters import ChapterFilter
 from ..permissions import IsAlumniManagerOrAdministrator
 
 
@@ -15,9 +16,9 @@ class ChapterViewSet(viewsets.ModelViewSet):
     queryset = Chapter.objects.all().order_by('-created_at')
     serializer_class = ChapterSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['city', 'state', 'country', 'chapter_type']
-    search_fields = ['name', 'description', 'city', 'state', 'country', 'chapter_type']
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter] 
+    filterset_class = ChapterFilter
+    search_fields = ['name', 'description', 'city__city_name', 'state__state_name', 'country__country_name', 'chapter_type']
     ordering_fields = ['name', 'created_at']
 
 class ChapterMembershipViewSet(viewsets.ModelViewSet):

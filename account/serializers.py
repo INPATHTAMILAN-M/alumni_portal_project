@@ -343,10 +343,23 @@ class ChapterSerializer(serializers.ModelSerializer):
     country =CountrySerializer( read_only=True)
     state = StateSerializer(read_only=True)
 
-    # state = serializers.CharField(source='location.state.state_name', read_only=True)   
+    location = serializers.PrimaryKeyRelatedField(
+        queryset=Location.objects.all(), write_only=True, required=False, allow_null=True
+    )
+    city = serializers.PrimaryKeyRelatedField(
+        queryset=City.objects.all(), write_only=True, required=False, allow_null=True
+    )
+    state = serializers.PrimaryKeyRelatedField(
+        queryset=State.objects.all(), write_only=True, required=False, allow_null=True
+    )  
+    country = serializers.PrimaryKeyRelatedField(
+        queryset=Country.objects.all(), write_only=True, required=False, allow_null=True
+    )
+
     class Meta:
         model = Chapter
-        fields = ['id', 'name', 'description', 'image', 'chapter_type', 'city', 'state', 'country', 'created_at','location']
+        fields = ['id', 'name', 'description', 'image', 'chapter_type', 'city', 'state', 'country', 'location', 'created_at',
+                  'location_id', 'city_id', 'state_id', 'country_id']
 
 
 class ChapterMembershipSerializer(serializers.ModelSerializer):

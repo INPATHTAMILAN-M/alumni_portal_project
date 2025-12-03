@@ -338,28 +338,37 @@ class CitySerializer(serializers.ModelSerializer):
         fields = ['id', 'city_name', 'state', 'state_id']
 
 class ChapterSerializer(serializers.ModelSerializer):
-    location = LocationSerializer(read_only=True)
+    # இந்த புலங்கள் GET request-களில் முழு nested object தரவை காண்பிக்கும்.
+    # இவை nested serializers ஆக இருப்பதால், இயல்பாகவே read-only ஆக இருக்கும்.
     city = CitySerializer(read_only=True)
-    country =CountrySerializer( read_only=True)
     state = StateSerializer(read_only=True)
+    country = CountrySerializer(read_only=True)
+    location = LocationSerializer(read_only=True)
 
-    location = serializers.PrimaryKeyRelatedField(
-        queryset=Location.objects.all(), write_only=True, required=False, allow_null=True
+    # இந்த புலங்கள் POST/PATCH request-களில் primary keys-ஐ ஏற்கும்.
+    # இவை write-only ஆகவும், Chapter மாடலில் உள்ள ForeignKey புலங்களுக்கு map செய்யவும் பயன்படுத்தப்படும்.
+    city_id = serializers.PrimaryKeyRelatedField(
+        queryset=City.objects.all(), source='city', write_only=True, required=False, allow_null=True
     )
-    city = serializers.PrimaryKeyRelatedField(
-        queryset=City.objects.all(), write_only=True, required=False, allow_null=True
+    state_id = serializers.PrimaryKeyRelatedField(
+        queryset=State.objects.all(), source='state', write_only=True, required=False, allow_null=True
     )
-    state = serializers.PrimaryKeyRelatedField(
-        queryset=State.objects.all(), write_only=True, required=False, allow_null=True
-    )  
-    country = serializers.PrimaryKeyRelatedField(
-        queryset=Country.objects.all(), write_only=True, required=False, allow_null=True
+    country_id = serializers.PrimaryKeyRelatedField(
+        queryset=Country.objects.all(), source='country', write_only=True, required=False, allow_null=True
+    )
+    location_id = serializers.PrimaryKeyRelatedField(
+        queryset=Location.objects.all(), source='location', write_only=True, required=False, allow_null=True
     )
 
     class Meta:
         model = Chapter
-        fields = ['id', 'name', 'description', 'image', 'chapter_type', 'city', 'state', 'country', 'location', 'created_at',
-                  'location_id', 'city_id', 'state_id', 'country_id']
+        fields = [
+            'id', 'name', 'description', 'image', 'chapter_type', 'created_at',
+
+            'city', 'state', 'country', 'location',
+
+            'city_id', 'state_id', 'country_id', 'location_id'
+        ]
 
 
 class ChapterMembershipSerializer(serializers.ModelSerializer):

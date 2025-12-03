@@ -310,29 +310,6 @@ class MemberMilestoneRetrieveSerializer(serializers.ModelSerializer):
         model = Member_Milestone
         fields = ['id','member',  'title', 'description', 'year']
     
-
-class ChapterSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Chapter
-        fields = ['id', 'name', 'description', 'image', 'chapter_type', 'city', 'state', 'country', 'created_at','location']
-
-
-class ChapterMembershipSerializer(serializers.ModelSerializer):
-    user = UserDetailSerializer(read_only=True)
-    chapter = ChapterSerializer(read_only=True)
-    user_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(), source='user', write_only=True
-    )
-    chapter_id = serializers.PrimaryKeyRelatedField(
-        queryset=Chapter.objects.all(), source='chapter', write_only=True
-    )
-
-    class Meta:
-        model = ChapterMembership
-        fields = ['id', 'chapter', 'user', 'joined_at', 'user_id', 'chapter_id']
-        read_only_fields = ['joined_at']
-
-
 class CountrySerializer(serializers.ModelSerializer):
     class Meta:
         model = Country
@@ -359,6 +336,36 @@ class CitySerializer(serializers.ModelSerializer):
     class Meta:
         model = City
         fields = ['id', 'city_name', 'state', 'state_id']
+
+class ChapterSerializer(serializers.ModelSerializer):
+    location = LocationSerializer(read_only=True)
+    city = CitySerializer(read_only=True)
+    country =CountrySerializer( read_only=True)
+    state = StateSerializer(read_only=True)
+
+    # state = serializers.CharField(source='location.state.state_name', read_only=True)   
+    class Meta:
+        model = Chapter
+        fields = ['id', 'name', 'description', 'image', 'chapter_type', 'city', 'state', 'country', 'created_at','location']
+
+
+class ChapterMembershipSerializer(serializers.ModelSerializer):
+    user = UserDetailSerializer(read_only=True)
+    chapter = ChapterSerializer(read_only=True)
+    user_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), source='user', write_only=True
+    )
+    chapter_id = serializers.PrimaryKeyRelatedField(
+        queryset=Chapter.objects.all(), source='chapter', write_only=True
+    )
+
+    class Meta:
+        model = ChapterMembership
+        fields = ['id', 'chapter', 'user', 'joined_at', 'user_id', 'chapter_id']
+        read_only_fields = ['joined_at']
+
+
+
     
     
     
